@@ -199,7 +199,7 @@ class TProxyService : VpnService() {
             true -> {
                 config.script?.let {
                     script = it
-                    Shell.cmd("$it start")
+                    Shell.cmd("$it start").exec()
                 }
                 transparentProxyHelper.startService()
             }
@@ -212,7 +212,7 @@ class TProxyService : VpnService() {
             true -> {
                 script?.let {
                     script = null
-                    Shell.cmd("$it stop")
+                    Shell.cmd("$it stop").exec()
                 }
                 transparentProxyHelper.stopService()
             }
