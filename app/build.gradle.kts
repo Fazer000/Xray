@@ -4,8 +4,8 @@ plugins {
     alias(libs.plugins.google.ksp)
 }
 
-val abiId: String by project
-val abiTarget: String by project
+val abiId: String = project.property("abiId").toString()
+val abiTarget: String = project.property("abiTarget").toString()
 
 fun calcVersionCode(): Int {
     val versionCodeFile = file("versionCode.txt")
