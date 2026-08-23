@@ -7,13 +7,10 @@ import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.iterator
 
-fun JsonObject.putValue(
-    key: String,
-    value: JsonElement,
-): JsonObject = buildJsonObject {
-    for ((existingKey, existingValue) in this@putValue) {
-        if (existingKey != key) {
-            put(existingKey, existingValue)
+fun JsonObject.putValue(key: String, value: JsonElement): JsonObject = buildJsonObject {
+    for ((name, value) in this@putValue) {
+        if (name != key) {
+            put(name, value)
         }
     }
     put(key, value)
