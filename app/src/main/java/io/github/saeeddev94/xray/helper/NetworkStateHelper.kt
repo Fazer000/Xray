@@ -4,7 +4,7 @@ import com.topjohnwu.superuser.Shell
 import io.github.saeeddev94.xray.service.TProxyService
 import java.io.File
 
-class NetworkStateHelper() {
+class NetworkStateHelper {
 
     fun monitor(script: File, pid: File) {
         if (!script.exists()) makeScript(script)
