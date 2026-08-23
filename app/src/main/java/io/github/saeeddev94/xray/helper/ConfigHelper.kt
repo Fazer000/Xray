@@ -7,7 +7,6 @@ import io.github.saeeddev94.xray.extensions.putValue
 import io.github.saeeddev94.xray.extensions.remove
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 class ConfigHelper(
@@ -83,18 +82,8 @@ class ConfigHelper(
         val inbounds = JsonHelper.getArray(base, "inbounds")
         base = buildJsonArray {
             for (inbound in inbounds) {
-                if (inbound is JsonObject && "listen" in inbound) {
-                    add(
-                        buildJsonObject {
-                            for ((key, value) in inbound) {
-                                if (key != "listen") {
-                                    put(key, value)
-                                }
-                            }
-                        }
-                    )
-                } else {
-                    add(inbound)
+                if (inbound is JsonObject) {
+                    add(inbound.remove("listen"))
                 }
             }
         }.let { base.putValue("inbounds", it) }
