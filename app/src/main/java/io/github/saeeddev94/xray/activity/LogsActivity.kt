@@ -3,7 +3,6 @@ package io.github.saeeddev94.xray.activity
 import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
@@ -77,7 +76,7 @@ class LogsActivity : AppCompatActivity() {
         if (text.isBlank()) return
         try {
             val clipData = ClipData.newPlainText(null, text)
-            val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
             clipboardManager.setPrimaryClip(clipData)
             Toast.makeText(applicationContext, "Logs copied", Toast.LENGTH_SHORT).show()
         } catch (error: Exception) {
