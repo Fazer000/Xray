@@ -7,6 +7,7 @@ import io.github.saeeddev94.xray.extensions.putValue
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class ConfigHelper(
     settings: Settings,
@@ -28,6 +29,8 @@ class ConfigHelper(
     }
 
     override fun toString(): String = base.encodeToString()
+
+    fun script() = base["script"]?.jsonPrimitive?.content
 
     private fun process(
         key: String,

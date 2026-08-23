@@ -20,6 +20,7 @@ import android.os.ParcelFileDescriptor
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import com.topjohnwu.superuser.Shell
 import io.github.saeeddev94.xray.BuildConfig
 import io.github.saeeddev94.xray.R
 import io.github.saeeddev94.xray.Settings
@@ -96,6 +97,7 @@ class TProxyService : VpnService() {
     private var tunDevice: ParcelFileDescriptor? = null
     private var cellularCallback: ConnectivityManager.NetworkCallback? = null
     private var toast: Toast? = null
+    private var script: String? = null
 
     private external fun TProxyStartService(configPath: String, fd: Int): Boolean
     private external fun TProxyStopService(): Boolean
@@ -163,7 +165,11 @@ class TProxyService : VpnService() {
             showToast(error)
             return null
         }
-        return XrayConfig(dir.absolutePath, config.absolutePath)
+        return XrayConfig(
+            dir.absolutePath,
+            config.absolutePath,
+            configHelper.getOrNull()?.script(),
+        )
     }
 
     private fun start(profile: Profile?, globalConfigs: Config) {
@@ -189,13 +195,29 @@ class TProxyService : VpnService() {
     }
 
     private fun startXray(config: XrayConfig) {
-        if (settings.transparentProxy) transparentProxyHelper.startService()
-        else XrayCore.start(config.dir, config.file)
+        when (settings.transparentProxy) {
+            true -> {
+                config.script?.let {
+                    script = it
+                    Shell.cmd("$it start")
+                }
+                transparentProxyHelper.startService()
+            }
+            false -> XrayCore.start(config.dir, config.file)
+        }
     }
 
     private fun stopXray() {
-        if (settings.transparentProxy) transparentProxyHelper.stopService()
-        else XrayCore.stop()
+        when (settings.transparentProxy) {
+            true -> {
+                script?.let {
+                    script = null
+                    Shell.cmd("$it stop")
+                }
+                transparentProxyHelper.stopService()
+            }
+            false -> XrayCore.stop()
+        }
     }
 
     private fun startVPN(profile: Profile?) {
