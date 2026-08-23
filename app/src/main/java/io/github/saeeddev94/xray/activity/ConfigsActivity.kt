@@ -85,7 +85,7 @@ class ConfigsActivity : AppCompatActivity() {
             modeRadioGroup.addView(radio)
             if (it == mode) modeRadioGroup.check(radio.id)
         }
-        radioGroup.put(tab, modeRadioGroup)
+        radioGroup[tab] = modeRadioGroup
 
         val editor = view.findViewById<TextProcessor>(R.id.config)
         val pluginSupplier = PluginSupplier.create {
@@ -103,7 +103,7 @@ class ConfigsActivity : AppCompatActivity() {
         editor.language = JsonLanguage()
         editor.setTextContent(config)
         editor.plugins(pluginSupplier)
-        configEditor.put(tab, editor)
+        configEditor[tab] = editor
     }
 
     private fun getConfig(tab: String): String {
@@ -137,14 +137,12 @@ class ConfigsActivity : AppCompatActivity() {
     }
 
     private fun getViewConfig(tab: String, default: String): String {
-        val editor = configEditor[tab]
-        if (editor == null) return default
+        val editor = configEditor[tab] ?: return default
         return editor.text.toString()
     }
 
     private fun getViewMode(tab: String, default: Config.Mode): Config.Mode {
-        val group = radioGroup[tab]
-        if (group == null) return default
+        val group = radioGroup[tab] ?: return default
         val modeRadioButton = group.findViewById<RadioButton>(
             group.checkedRadioButtonId
         )
