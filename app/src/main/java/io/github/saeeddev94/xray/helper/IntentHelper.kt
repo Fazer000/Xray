@@ -9,7 +9,7 @@ class IntentHelper {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(name, clazz)
             } else {
-                @Suppress("deprecation")
+                @Suppress("Deprecation")
                 intent.getParcelableExtra(name)
             }
         }
