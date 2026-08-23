@@ -32,12 +32,9 @@ class ConfigHelper(
 
     fun script(): String? {
         val key = "script"
-        if (base.keys.contains(key)) {
-            val value = base[key]?.jsonPrimitive?.content
-            base = base.remove(key)
-            return value
-        }
-        return null
+        val value: String? = base[key]?.jsonPrimitive?.content
+        base = base.remove(key)
+        return value
     }
 
     private fun process(
