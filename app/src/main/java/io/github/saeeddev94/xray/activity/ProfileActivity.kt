@@ -149,7 +149,7 @@ class ProfileActivity : AppCompatActivity() {
         val config = binding.profileConfig.text.toString()
         lifecycleScope.launch {
             val configHelper = runCatching {
-                ConfigHelper(settings, this@ProfileActivity.config, profile.config)
+                ConfigHelper(settings, this@ProfileActivity.config, config)
             }
             val error = if (configHelper.isSuccess) {
                 isValid(configHelper.getOrNull().toString())
