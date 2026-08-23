@@ -13,12 +13,12 @@ fun calcVersionCode(): Int = file("versionCode.txt").readText().trim().let { ver
 
 android {
     namespace = "io.github.saeeddev94.xray"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.saeeddev94.xray"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = calcVersionCode()
         versionName = "12.5.0"
     }
