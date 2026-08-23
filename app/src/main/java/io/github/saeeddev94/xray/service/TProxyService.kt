@@ -199,7 +199,7 @@ class TProxyService : VpnService() {
             true -> {
                 config.script?.let {
                     script = it
-                    Shell.cmd("$it start").exec()
+                    Shell.cmd("nohup $it start > /dev/null 2>&1 &").exec()
                 }
                 transparentProxyHelper.startService()
             }
