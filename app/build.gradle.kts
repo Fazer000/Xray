@@ -7,10 +7,8 @@ plugins {
 val abiId: String = project.property("abiId").toString()
 val abiTarget: String = project.property("abiTarget").toString()
 
-fun calcVersionCode(): Int {
-    val versionCodeFile = file("versionCode.txt")
-    val versionCode = versionCodeFile.readText().trim().toInt()
-    return versionCode + abiId.toInt()
+fun calcVersionCode(): Int = file("versionCode.txt").readText().trim().let { versionCode ->
+    versionCode.toInt() + abiId.toInt()
 }
 
 android {
