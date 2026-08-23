@@ -4,6 +4,7 @@ import io.github.saeeddev94.xray.Settings
 import io.github.saeeddev94.xray.database.Config
 import io.github.saeeddev94.xray.extensions.encodeToString
 import io.github.saeeddev94.xray.extensions.putValue
+import io.github.saeeddev94.xray.extensions.remove
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -30,7 +31,15 @@ class ConfigHelper(
 
     override fun toString(): String = base.encodeToString()
 
-    fun script() = base["script"]?.jsonPrimitive?.content
+    fun script(): String? {
+        val key = "script"
+        if (base.keys.contains(key)) {
+            val value = base[key]?.jsonPrimitive?.content
+            base = base.remove(key)
+            return value
+        }
+        return null
+    }
 
     private fun process(
         key: String,

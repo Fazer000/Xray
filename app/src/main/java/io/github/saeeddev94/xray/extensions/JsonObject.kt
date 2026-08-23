@@ -18,3 +18,11 @@ fun JsonObject.putValue(
     }
     put(key, value)
 }
+
+fun JsonObject.remove(key: String): JsonObject = buildJsonObject {
+    for ((name, value) in this@remove) {
+        if (name != key) {
+            put(name, value)
+        }
+    }
+}
