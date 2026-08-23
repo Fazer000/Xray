@@ -11,7 +11,7 @@ export GOPATH="$(realpath go-path)"
 export PATH="$GOPATH/bin:$PATH"
 
 # Setup SDK & NDK
-sdkmanager "platform-tools" "platforms;android-$SDK_VERSION" "build-tools;$SDK_VERSION.0.0"
+sdkmanager "platform-tools" "platforms;android-$SDK_VERSION.0" "build-tools;$SDK_VERSION.0.0"
 sdkmanager --install "ndk;$NDK_VERSION" --channel=3
 
 # Accept licenses
