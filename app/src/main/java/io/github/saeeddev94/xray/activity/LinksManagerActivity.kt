@@ -14,6 +14,8 @@ import io.github.saeeddev94.xray.R
 import io.github.saeeddev94.xray.Settings
 import io.github.saeeddev94.xray.database.Link
 import io.github.saeeddev94.xray.database.Profile
+import io.github.saeeddev94.xray.extensions.decodeToJsonArray
+import io.github.saeeddev94.xray.extensions.encodeToString
 import io.github.saeeddev94.xray.fragment.LinkFormFragment
 import io.github.saeeddev94.xray.helper.HttpHelper
 import io.github.saeeddev94.xray.helper.IntentHelper
@@ -24,9 +26,11 @@ import io.github.saeeddev94.xray.viewmodel.ProfileViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import kotlin.reflect.cast
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 class LinksManagerActivity : AppCompatActivity() {
 
@@ -127,26 +131,31 @@ class LinksManagerActivity : AppCompatActivity() {
 
     private fun jsonProfiles(link: Link, value: String): List<Profile> {
         val list = arrayListOf<Profile>()
-        val configs = runCatching { JSONArray(value) }.getOrNull() ?: JSONArray()
-        for (i in 0 until configs.length()) {
-            runCatching { JSONObject::class.cast(configs[i]) }.getOrNull()?.let { configuration ->
-                val label = if (configuration.has("remarks")) {
-                    val remarks = configuration.getString("remarks")
-                    configuration.remove("remarks")
-                    remarks
-                } else {
-                    LinkHelper.REMARK_DEFAULT
+        val configs = runCatching {
+            value.decodeToJsonArray()
+        }.getOrNull() ?: JsonArray(emptyList())
+
+        for (element in configs) {
+            val configuration: JsonObject = element as? JsonObject ?: continue
+            val label: String = configuration["remarks"]
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?: LinkHelper.REMARK_DEFAULT
+            val json: String = buildJsonObject {
+                for ((key, jsonElement) in configuration) {
+                    if (key != "remarks") {
+                        put(key, jsonElement)
+                    }
                 }
-                val json = configuration.toString(2)
-                val profile = Profile().apply {
-                    linkId = link.id
-                    name = label
-                    config = json
-                }
-                list.add(profile)
-            }
+            }.encodeToString()
+            Profile().apply {
+                linkId = link.id
+                name = label
+                config = json
+            }.let { list.add(it) }
         }
-        return list.reversed().toList()
+
+        return list.reversed()
     }
 
     private fun subscriptionProfiles(link: Link, value: String): List<Profile> {

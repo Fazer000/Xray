@@ -1,65 +1,106 @@
 package io.github.saeeddev94.xray.helper
 
-import org.json.JSONArray
-import org.json.JSONObject
+import io.github.saeeddev94.xray.extensions.decodeToJsonArray
+import io.github.saeeddev94.xray.extensions.decodeToJsonObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
-class JsonHelper {
-    companion object {
-        fun makeObject(value: String) = JSONObject(value)
+object JsonHelper {
 
-        fun makeArray(value: String) = JSONArray(value)
+    fun makeObject(value: String): JsonObject = value.decodeToJsonObject()
 
-        fun getObject(value: JSONObject, key: String) =
-            value.optJSONObject(key) ?: JSONObject()
+    fun makeArray(value: String): JsonArray = value.decodeToJsonArray()
 
-        fun getArray(value: JSONObject, key: String) =
-            value.optJSONArray(key) ?: JSONArray()
+    fun getObject(
+        value: JsonObject,
+        key: String,
+    ): JsonObject = value[key] as? JsonObject ?: JsonObject(emptyMap())
 
-        fun mergeObjects(obj1: JSONObject, obj2: JSONObject): JSONObject {
-            val result = JSONObject(obj1.toString())
+    fun getArray(
+        value: JsonObject,
+        key: String,
+    ): JsonArray = value[key] as? JsonArray ?: JsonArray(emptyList())
 
-            for (key in obj2.keys()) {
-                val value2 = obj2[key]
-                if (result.has(key)) {
-                    val value1 = result[key]
-                    when {
-                        value1 is JSONObject && value2 is JSONObject -> {
-                            result.put(key, mergeObjects(value1, value2))
-                        }
-                        value1 is JSONArray && value2 is JSONArray -> {
-                            result.put(key, mergeArrays(value1, value2))
-                        }
-                        else -> result.put(key, value2)
-                    }
-                } else result.put(key, value2)
-            }
+    fun mergeObjects(
+        obj1: JsonObject,
+        obj2: JsonObject,
+    ): JsonObject = buildJsonObject {
 
-            return result
+        // Start with everything from obj1
+        for ((key, value) in obj1) {
+            put(key, value)
         }
 
-        fun mergeArrays(arr1: JSONArray, arr2: JSONArray, mergeKey: String = ""): JSONArray {
-            val result = JSONArray()
+        // Merge/replace with values from obj2
+        for ((key, value2) in obj2) {
+            when (val value1 = obj1[key]) {
+                is JsonObject if value2 is JsonObject -> {
+                    put(
+                        key,
+                        mergeObjects(value1, value2)
+                    )
+                }
 
-            for (i in 0 until arr1.length()) result.put(arr1[i])
+                is JsonArray if value2 is JsonArray -> {
+                    put(
+                        key,
+                        mergeArrays(value1, value2)
+                    )
+                }
 
-            for (i in 0 until arr2.length()) {
-                val value2 = arr2[i]
-                if (value2 is JSONObject && value2.has(mergeKey)) {
-                    val keyValue = value2[mergeKey]
+                else -> {
+                    put(key, value2)
+                }
+            }
+        }
+    }
+
+    fun mergeArrays(
+        arr1: JsonArray,
+        arr2: JsonArray,
+        mergeKey: String = "",
+    ): JsonArray {
+        val result = arr1.toMutableList()
+
+        for (value2 in arr2) {
+
+            if (value2 is JsonObject && mergeKey.isNotEmpty()) {
+
+                val keyValue = value2[mergeKey]
+                    ?.jsonPrimitive
+                    ?.contentOrNull
+
+                if (keyValue != null) {
                     var merged = false
-                    for (j in 0 until result.length()) {
-                        val value1 = result[j]
-                        if (value1 is JSONObject && value1.has(mergeKey) && value1[mergeKey] == keyValue) {
-                            result.put(j, mergeObjects(value1, value2))
-                            merged = true
-                            break
+
+                    for (i in result.indices) {
+                        val value1 = result[i]
+
+                        if (value1 is JsonObject) {
+                            val value1Key = value1[mergeKey]
+                                ?.jsonPrimitive
+                                ?.contentOrNull
+
+                            if (value1Key == keyValue) {
+                                result[i] = mergeObjects(value1, value2)
+                                merged = true
+                                break
+                            }
                         }
                     }
-                    if (!merged) result.put(value2)
-                } else result.put(value2)
+
+                    if (merged) {
+                        continue
+                    }
+                }
             }
 
-            return result
+            result.add(value2)
         }
+
+        return JsonArray(result)
     }
 }

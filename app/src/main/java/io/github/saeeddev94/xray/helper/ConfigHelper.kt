@@ -2,14 +2,18 @@ package io.github.saeeddev94.xray.helper
 
 import io.github.saeeddev94.xray.Settings
 import io.github.saeeddev94.xray.database.Config
-import org.json.JSONObject
+import io.github.saeeddev94.xray.extensions.encodeToString
+import io.github.saeeddev94.xray.extensions.putValue
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
 
 class ConfigHelper(
     settings: Settings,
     config: Config,
     base: String,
 ) {
-    private val base: JSONObject = JsonHelper.makeObject(base)
+    private var base: JsonObject = JsonHelper.makeObject(base)
 
     init {
         process("log", config.log, config.logMode)
@@ -17,48 +21,70 @@ class ConfigHelper(
         process("inbounds", config.inbounds, config.inboundsMode)
         process("outbounds", config.outbounds, config.outboundsMode)
         process("routing", config.routing, config.routingMode)
-        if (settings.tproxyHotspot || settings.tproxyTethering) sharedInbounds()
-    }
 
-    override fun toString(): String {
-        return base.toString(4)
-    }
-
-    private fun process(key: String, config: String, mode: Config.Mode) {
-        if (mode == Config.Mode.Disable) return
-        if (arrayOf("inbounds", "outbounds").contains(key)) {
-            processArray(key, config, mode)
-            return
+        if (settings.tproxyHotspot || settings.tproxyTethering) {
+            sharedInbounds()
         }
-        processObject(key, config, mode)
     }
 
-    private fun processObject(key: String, config: String, mode: Config.Mode) {
+    override fun toString(): String = base.encodeToString()
+
+    private fun process(
+        key: String,
+        config: String,
+        mode: Config.Mode,
+    ) {
+        if (mode == Config.Mode.Disable) return
+        when (key == "inbounds" || key == "outbounds") {
+            true -> processArray(key, config, mode)
+            false -> processObject(key, config, mode)
+        }
+    }
+
+    private fun processObject(
+        key: String,
+        config: String,
+        mode: Config.Mode,
+    ) {
         val oldValue = JsonHelper.getObject(base, key)
         val newValue = JsonHelper.makeObject(config)
-        val final = if (mode == Config.Mode.Replace) newValue
-        else JsonHelper.mergeObjects(oldValue, newValue)
-        base.put(key, final)
+        base = when (mode == Config.Mode.Replace) {
+            true -> newValue
+            false -> JsonHelper.mergeObjects(oldValue, newValue)
+        }.let { base.putValue(key, it) }
     }
 
-    private fun processArray(key: String, config: String, mode: Config.Mode) {
+    private fun processArray(
+        key: String,
+        config: String,
+        mode: Config.Mode,
+    ) {
         val oldValue = JsonHelper.getArray(base, key)
         val newValue = JsonHelper.makeArray(config)
-        val final = if (mode == Config.Mode.Replace) newValue
-        else JsonHelper.mergeArrays(oldValue, newValue, "protocol")
-        base.put(key, final)
+        base = when (mode == Config.Mode.Replace) {
+            true -> newValue
+            false -> JsonHelper.mergeArrays(oldValue, newValue, "protocol")
+        }.let { base.putValue(key, it) }
     }
 
     private fun sharedInbounds() {
-        val key = "inbounds"
-        val inbounds = JsonHelper.getArray(base, key)
-        for (i in 0 until inbounds.length()) {
-            val inbound = inbounds[i]
-            if (inbound is JSONObject && inbound.has("listen")) {
-                inbound.remove("listen")
-                inbounds.put(i, inbound)
+        val inbounds = JsonHelper.getArray(base, "inbounds")
+        base = buildJsonArray {
+            for (inbound in inbounds) {
+                if (inbound is JsonObject && "listen" in inbound) {
+                    add(
+                        buildJsonObject {
+                            for ((key, value) in inbound) {
+                                if (key != "listen") {
+                                    put(key, value)
+                                }
+                            }
+                        }
+                    )
+                } else {
+                    add(inbound)
+                }
             }
-        }
-        base.put(key, inbounds)
+        }.let { base.putValue("inbounds", it) }
     }
 }

@@ -21,6 +21,7 @@ import io.github.saeeddev94.xray.Settings
 import io.github.saeeddev94.xray.database.Config
 import io.github.saeeddev94.xray.database.Profile
 import io.github.saeeddev94.xray.databinding.ActivityProfileBinding
+import io.github.saeeddev94.xray.extensions.formatJsonObject
 import io.github.saeeddev94.xray.helper.ConfigHelper
 import io.github.saeeddev94.xray.helper.FileHelper
 import io.github.saeeddev94.xray.viewmodel.ConfigViewModel
@@ -144,10 +145,12 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun save(check: Boolean = true) {
-        profile.name = binding.profileName.text.toString()
-        profile.config = binding.profileConfig.text.toString()
+        val name = binding.profileName.text.toString()
+        val config = binding.profileConfig.text.toString()
         lifecycleScope.launch {
-            val configHelper = runCatching { ConfigHelper(settings, config, profile.config) }
+            val configHelper = runCatching {
+                ConfigHelper(settings, this@ProfileActivity.config, profile.config)
+            }
             val error = if (configHelper.isSuccess) {
                 isValid(configHelper.getOrNull().toString())
             } else {
@@ -159,6 +162,8 @@ class ProfileActivity : AppCompatActivity() {
                 }
                 return@launch
             }
+            profile.name = name
+            profile.config = runCatching { config.formatJsonObject() }.getOrNull() ?: config
             if (profile.id == 0L) {
                 profileViewModel.create(profile)
             } else {

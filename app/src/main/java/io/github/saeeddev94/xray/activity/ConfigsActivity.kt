@@ -21,13 +21,12 @@ import io.github.saeeddev94.xray.R
 import io.github.saeeddev94.xray.adapter.ConfigAdapter
 import io.github.saeeddev94.xray.database.Config
 import io.github.saeeddev94.xray.databinding.ActivityConfigsBinding
+import io.github.saeeddev94.xray.extensions.formatJsonArray
+import io.github.saeeddev94.xray.extensions.formatJsonObject
 import io.github.saeeddev94.xray.viewmodel.ConfigViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import kotlin.getValue
 import kotlin.reflect.cast
 
 class ConfigsActivity : AppCompatActivity() {
@@ -38,7 +37,6 @@ class ConfigsActivity : AppCompatActivity() {
     private val configViewModel: ConfigViewModel by viewModels()
     private val radioGroup = mutableMapOf<String, RadioGroup>()
     private val configEditor = mutableMapOf<String, TextProcessor>()
-    private val indentSpaces = 4
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -149,10 +147,11 @@ class ConfigsActivity : AppCompatActivity() {
         return Config.Mode::class.cast(modeRadioButton.tag)
     }
 
-    private fun formatConfig(tab: String, default: String): String {
-        val json = getViewConfig(tab, default)
-        if (arrayOf("inbounds", "outbounds").contains(tab)) return JSONArray(json).toString(indentSpaces)
-        return JSONObject(json).toString(indentSpaces)
+    private fun formatConfig(tab: String, default: String): String = getViewConfig(tab, default).let {
+        when (arrayOf("inbounds", "outbounds").contains(tab)) {
+            true -> it.formatJsonArray()
+            false -> it.formatJsonObject()
+        }
     }
 
     private fun saveConfigs() {

@@ -3,32 +3,47 @@ package io.github.saeeddev94.xray.helper
 import XrayCore.XrayCore
 import android.util.Base64
 import io.github.saeeddev94.xray.Settings
-import org.json.JSONArray
-import org.json.JSONException
-import org.json.JSONObject
+import io.github.saeeddev94.xray.extensions.decodeToJsonObject
+import io.github.saeeddev94.xray.extensions.encodeToString
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import java.net.URI
 
 class LinkHelper(
     private val settings: Settings,
-    link: String
+    link: String,
 ) {
 
     private val success: Boolean
-    private val outbound: JSONObject?
+    private val outbound: JsonObject?
     private var remark: String = REMARK_DEFAULT
 
     init {
         val base64: String = XrayCore.json(link)
-        val decoded = tryDecodeBase64(base64)
-        val response = try {
-            JSONObject(decoded)
-        } catch (_: JSONException) {
-            JSONObject()
-        }
-        val data = response.optJSONObject("data") ?: JSONObject()
-        val outbounds = data.optJSONArray("outbounds") ?: JSONArray()
-        success = response.optBoolean("success", false)
-        outbound = if (outbounds.length() > 0) outbounds[0] as JSONObject else null
+        val response = runCatching {
+            tryDecodeBase64(base64).decodeToJsonObject()
+        }.getOrDefault(JsonObject(emptyMap()))
+
+        success = response["success"]
+            ?.jsonPrimitive
+            ?.booleanOrNull
+            ?: false
+
+        outbound = response["data"]
+            ?.jsonObject
+            ?.get("outbounds")
+            ?.jsonArray
+            ?.firstOrNull()
+            ?.jsonObject
     }
 
     companion object {
@@ -48,171 +63,208 @@ class LinkHelper(
         }
     }
 
-    fun isValid(): Boolean {
-        return success && outbound != null
+    fun isValid(): Boolean = success && outbound != null
+
+    fun json(): String = config().encodeToString() + "\n"
+
+    fun remark(): String = remark
+
+    private fun log(): JsonObject {
+        return buildJsonObject {
+            put("loglevel", "warning")
+        }
     }
 
-    fun json(): String {
-        return config().toString(2) + "\n"
+    private fun dns(): JsonObject {
+        return buildJsonObject {
+            put(
+                "servers",
+                buildJsonArray {
+                    add(JsonPrimitive(settings.primaryDns))
+                    add(JsonPrimitive(settings.secondaryDns))
+                }
+            )
+        }
     }
 
-    fun remark(): String {
-        return remark
-    }
+    private fun inbounds(): JsonArray {
+        val sniffing = buildJsonObject {
+            put("enabled", true)
 
-    private fun log(): JSONObject {
-        val log = JSONObject()
-        log.put("loglevel", "warning")
-        return log
-    }
-
-    private fun dns(): JSONObject {
-        val dns = JSONObject()
-        val servers = JSONArray()
-        servers.put(settings.primaryDns)
-        servers.put(settings.secondaryDns)
-        dns.put("servers", servers)
-        return dns
-    }
-
-    private fun inbounds(): JSONArray {
-        val inbounds = JSONArray()
-
-        val sniffing = JSONObject()
-        sniffing.put("enabled", true)
-        val sniffingDestOverride = JSONArray()
-        sniffingDestOverride.put("http")
-        sniffingDestOverride.put("tls")
-        sniffingDestOverride.put("quic")
-        sniffing.put("destOverride", sniffingDestOverride)
-
-        val tproxy = JSONObject()
-        tproxy.put("listen", settings.tproxyAddress)
-        tproxy.put("port", settings.tproxyPort)
-        tproxy.put("protocol", "dokodemo-door")
-
-        val tproxySettings = JSONObject()
-        tproxySettings.put("network", "tcp,udp")
-        tproxySettings.put("followRedirect", true)
-
-        val tproxySockopt = JSONObject()
-        tproxySockopt.put("tproxy", "tproxy")
-
-        val tproxyStreamSettings = JSONObject()
-        tproxyStreamSettings.put("sockopt", tproxySockopt)
-
-        tproxy.put("settings", tproxySettings)
-        tproxy.put("sniffing", sniffing)
-        tproxy.put("streamSettings", tproxyStreamSettings)
-        tproxy.put("tag", "all-in")
-
-        val socks = JSONObject()
-        socks.put("listen", settings.socksAddress)
-        socks.put("port", settings.socksPort.toInt())
-        socks.put("protocol", "socks")
-
-        val socksSettings = JSONObject()
-        socksSettings.put("udp", true)
-        if (
-            settings.socksUsername.trim().isNotEmpty() &&
-            settings.socksPassword.trim().isNotEmpty()
-        ) {
-            val account = JSONObject()
-            account.put("user", settings.socksUsername)
-            account.put("pass", settings.socksPassword)
-            val accounts = JSONArray()
-            accounts.put(account)
-
-            socksSettings.put("auth", "password")
-            socksSettings.put("accounts", accounts)
+            put(
+                "destOverride",
+                buildJsonArray {
+                    add(JsonPrimitive("http"))
+                    add(JsonPrimitive("tls"))
+                    add(JsonPrimitive("quic"))
+                }
+            )
         }
 
-        socks.put("settings", socksSettings)
-        socks.put("sniffing", sniffing)
-        socks.put("tag", "socks")
+        val tproxy = buildJsonObject {
+            put("listen", settings.tproxyAddress)
+            put("port", settings.tproxyPort)
+            put("protocol", "dokodemo-door")
 
-        if (settings.transparentProxy) inbounds.put(tproxy)
-        else inbounds.put(socks)
+            put(
+                "settings",
+                buildJsonObject {
+                    put("network", "tcp,udp")
+                    put("followRedirect", true)
+                }
+            )
 
-        return inbounds
-    }
+            put("sniffing", sniffing)
 
-    private fun outbounds(): JSONArray {
-        val outbounds = JSONArray()
+            put(
+                "streamSettings",
+                buildJsonObject {
+                    put(
+                        "sockopt",
+                        buildJsonObject {
+                            put("tproxy", "tproxy")
+                        }
+                    )
+                }
+            )
 
-        val proxy = JSONObject(outbound!!.toString())
-        if (proxy.has("sendThrough")) {
-            remark = proxy.optString("sendThrough", REMARK_DEFAULT)
-            proxy.remove("sendThrough")
-        }
-        proxy.put("tag", "proxy")
-
-        val direct = JSONObject()
-        direct.put("protocol", "freedom")
-        direct.put("tag", "direct")
-
-        val block = JSONObject()
-        block.put("protocol", "blackhole")
-        block.put("tag", "block")
-
-        val dns = JSONObject()
-        dns.put("protocol", "dns")
-        dns.put("tag", "dns-out")
-
-        outbounds.put(proxy)
-        outbounds.put(direct)
-        outbounds.put(block)
-        if (settings.transparentProxy) outbounds.put(dns)
-
-        return outbounds
-    }
-
-    private fun routing(): JSONObject {
-        val routing = JSONObject()
-        routing.put("domainStrategy", "IPIfNonMatch")
-
-        val rules = JSONArray()
-
-        val proxyDns = JSONObject()
-
-        if (settings.transparentProxy) {
-            val inboundTag = JSONArray()
-            inboundTag.put("all-in")
-            proxyDns.put("network", "udp")
-            proxyDns.put("port", 53)
-            proxyDns.put("inboundTag", inboundTag)
-            proxyDns.put("outboundTag", "dns-out")
-        } else {
-            val proxyDnsIp = JSONArray()
-            proxyDnsIp.put(settings.primaryDns)
-            proxyDnsIp.put(settings.secondaryDns)
-            proxyDns.put("ip", proxyDnsIp)
-            proxyDns.put("port", 53)
-            proxyDns.put("outboundTag", "proxy")
+            put("tag", "all-in")
         }
 
-        val directPrivate = JSONObject()
-        val directPrivateIp = JSONArray()
-        directPrivateIp.put("geoip:private")
-        directPrivate.put("ip", directPrivateIp)
-        directPrivate.put("outboundTag", "direct")
+        val socksSettings = buildJsonObject {
+            put("udp", true)
 
-        rules.put(proxyDns)
-        rules.put(directPrivate)
+            if (
+                settings.socksUsername.trim().isNotEmpty() &&
+                settings.socksPassword.trim().isNotEmpty()
+            ) {
+                put("auth", "password")
 
-        routing.put("rules", rules)
+                put(
+                    "accounts",
+                    buildJsonArray {
+                        add(
+                            buildJsonObject {
+                                put("user", settings.socksUsername)
+                                put("pass", settings.socksPassword)
+                            }
+                        )
+                    }
+                )
+            }
+        }
 
-        return routing
+        val socks = buildJsonObject {
+            put("listen", settings.socksAddress)
+            put("port", settings.socksPort.toInt())
+            put("protocol", "socks")
+            put("settings", socksSettings)
+            put("sniffing", sniffing)
+            put("tag", "socks")
+        }
+
+        return buildJsonArray {
+            when (settings.transparentProxy) {
+                true -> add(tproxy)
+                false -> add(socks)
+            }
+        }
     }
 
-    private fun config(): JSONObject {
-        val config = JSONObject()
-        config.put("log", log())
-        config.put("dns", dns())
-        config.put("inbounds", inbounds())
-        config.put("outbounds", outbounds())
-        config.put("routing", routing())
-        return config
+    private fun outbounds(): JsonArray {
+        val outbound = this@LinkHelper.outbound!!
+
+        remark = outbound["sendThrough"]
+            ?.jsonPrimitive
+            ?.contentOrNull ?: REMARK_DEFAULT
+
+        val proxy = buildJsonObject {
+            for ((key, value) in outbound) {
+                if (key != "sendThrough" && key != "tag") {
+                    put(key, value)
+                }
+            }
+
+            put("tag", "proxy")
+        }
+
+        val direct = buildJsonObject {
+            put("protocol", "freedom")
+            put("tag", "direct")
+        }
+
+        val block = buildJsonObject {
+            put("protocol", "blackhole")
+            put("tag", "block")
+        }
+
+        val dns = buildJsonObject {
+            put("protocol", "dns")
+            put("tag", "dns-out")
+        }
+
+        return buildJsonArray {
+            add(proxy)
+            add(direct)
+            add(block)
+            if (settings.transparentProxy) add(dns)
+        }
     }
 
+    private fun routing(): JsonObject {
+        val proxyDns = buildJsonObject {
+            if (settings.transparentProxy) {
+                put("network", "udp")
+                put("port", 53)
+                put(
+                    "inboundTag",
+                    buildJsonArray {
+                        add(JsonPrimitive("all-in"))
+                    }
+                )
+                put("outboundTag", "dns-out")
+            } else {
+                put(
+                    "ip",
+                    buildJsonArray {
+                        add(JsonPrimitive(settings.primaryDns))
+                        add(JsonPrimitive(settings.secondaryDns))
+                    }
+                )
+                put("port", 53)
+                put("outboundTag", "proxy")
+            }
+        }
+
+        val directPrivate = buildJsonObject {
+            put(
+                "ip",
+                buildJsonArray {
+                    add(JsonPrimitive("geoip:private"))
+                }
+            )
+            put("outboundTag", "direct")
+        }
+
+        return buildJsonObject {
+            put("domainStrategy", "IPIfNonMatch")
+            put(
+                "rules",
+                buildJsonArray {
+                    add(proxyDns)
+                    add(directPrivate)
+                }
+            )
+        }
+    }
+
+    private fun config(): JsonObject {
+        return buildJsonObject {
+            put("log", log())
+            put("dns", dns())
+            put("inbounds", inbounds())
+            put("outbounds", outbounds())
+            put("routing", routing())
+        }
+    }
 }
