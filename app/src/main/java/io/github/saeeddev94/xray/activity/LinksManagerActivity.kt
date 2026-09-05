@@ -21,6 +21,7 @@ import io.github.saeeddev94.xray.fragment.LinkFormFragment
 import io.github.saeeddev94.xray.helper.HttpHelper
 import io.github.saeeddev94.xray.helper.IntentHelper
 import io.github.saeeddev94.xray.helper.LinkHelper
+import io.github.saeeddev94.xray.helper.PingHelper
 import io.github.saeeddev94.xray.service.TProxyService
 import io.github.saeeddev94.xray.viewmodel.LinkViewModel
 import io.github.saeeddev94.xray.viewmodel.ProfileViewModel
@@ -179,12 +180,12 @@ class LinksManagerActivity : AppCompatActivity() {
                 }.encodeToString()
 
                 val cleanParentRemark = if (parentRemark.length > 30 || parentRemark.contains("http") || parentRemark.contains("fwqfw")) {
-                    link.name.ifBlank { "AUTO Balancer" }
+                    link.name.ifBlank { "Auto Balancer" }
                 } else {
                     parentRemark
                 }
 
-                val autoTitle = if (cleanParentRemark.contains("auto", ignoreCase = true)) cleanParentRemark else "$cleanParentRemark (Auto)"
+                val autoTitle = "⚡ Auto (${cleanParentRemark.ifBlank { "Smart Balancer" }})"
                 list.add(Profile().apply {
                     linkId = link.id
                     name = autoTitle
@@ -192,28 +193,34 @@ class LinksManagerActivity : AppCompatActivity() {
                 })
 
                 val seenConfigs = mutableSetOf<String>()
+                val seenAddresses = mutableSetOf<String>()
 
                 // 2. Individual server profiles
                 for (proxyOutbound in proxyOutbounds) {
+                    val hostPort = PingHelper.extractHostAndPort(proxyOutbound.encodeToString())
+                    val uniqueAddrKey = if (hostPort != null) "${hostPort.first}:${hostPort.second}" else ""
+
+                    val serverConfigObj = buildSingleServerConfig(configuration, proxyOutbound, nonProxyOutbounds)
+                    val configStr = serverConfigObj.encodeToString()
+
+                    if (seenConfigs.contains(configStr) || (uniqueAddrKey.isNotBlank() && seenAddresses.contains(uniqueAddrKey))) {
+                        continue // Skip duplicate configs or servers
+                    }
+                    seenConfigs.add(configStr)
+                    if (uniqueAddrKey.isNotBlank()) seenAddresses.add(uniqueAddrKey)
+
                     val serverName = LinkHelper.generateServerName(proxyOutbound)
                     val baseTitle = if (cleanParentRemark.isNotBlank() && 
                         cleanParentRemark != LinkHelper.REMARK_DEFAULT && 
                         cleanParentRemark != link.name && 
                         !cleanParentRemark.contains("Auto", ignoreCase = true) &&
-                        !serverName.startsWith(cleanParentRemark, ignoreCase = true)
+                        !serverName.startsWith(cleanParentRemark, ignoreCase = true) &&
+                        !serverName.contains("🇩🇪") && !serverName.contains("🇺🇸") && !serverName.contains("🇫🇷") && !serverName.contains("🇫🇮") && !serverName.contains("🇹🇷") && !serverName.contains("🇳🇱") && !serverName.contains("🇷🇺")
                     ) {
                         "$cleanParentRemark - $serverName"
                     } else {
                         serverName
                     }
-
-                    val serverConfigObj = buildSingleServerConfig(configuration, proxyOutbound, nonProxyOutbounds)
-                    val configStr = serverConfigObj.encodeToString()
-
-                    if (seenConfigs.contains(configStr)) {
-                        continue // Skip exact duplicate configs
-                    }
-                    seenConfigs.add(configStr)
 
                     val count = (titleCounts[baseTitle] ?: 0) + 1
                     titleCounts[baseTitle] = count
@@ -365,6 +372,7 @@ class LinksManagerActivity : AppCompatActivity() {
         }
 
         val list = arrayListOf<Profile>()
+        val seenAddresses = mutableSetOf<String>()
         val lines = decoded.split("\n")
             .map { it.trim() }
             .filter { it.isNotEmpty() }
@@ -377,10 +385,16 @@ class LinksManagerActivity : AppCompatActivity() {
             }
             val linkHelper = LinkHelper(settings, line)
             if (!linkHelper.isValid()) continue
-            for ((name, configJson) in linkHelper.profiles()) {
+            for ((rawName, configJson) in linkHelper.profiles()) {
+                val hostPort = PingHelper.extractHostAndPort(configJson)
+                val uniqueKey = if (hostPort != null) "${hostPort.first}:${hostPort.second}" else configJson
+                if (seenAddresses.contains(uniqueKey)) continue
+                seenAddresses.add(uniqueKey)
+
+                val formattedName = LinkHelper.addFlagEmoji(rawName)
                 val profile = Profile().apply {
                     linkId = link.id
-                    this.name = name
+                    this.name = formattedName
                     this.config = configJson
                 }
                 list.add(profile)

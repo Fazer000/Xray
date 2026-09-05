@@ -155,6 +155,16 @@ class TProxyService : VpnService() {
         return configRepository.get()
     }
 
+    private fun appendLog(message: String) {
+        try {
+            val logFile = settings.xrayCoreLogs()
+            val timestamp = java.text.SimpleDateFormat("yyyy/MM/dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+            logFile.appendText("[$timestamp] $message\n")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private fun getConfig(profile: Profile, globalConfigs: Config): XrayConfig? {
         val dir: File = applicationContext.filesDir
         val config: File = settings.xrayConfig()
@@ -170,6 +180,7 @@ class TProxyService : VpnService() {
             configResult.exceptionOrNull()?.message ?: getString(R.string.invalidProfile)
         }
         if (error.isNotEmpty()) {
+            appendLog("Config test failed: $error")
             showToast(error)
             return null
         }
@@ -182,6 +193,7 @@ class TProxyService : VpnService() {
 
     private fun start(profile: Profile?, globalConfigs: Config) {
         if (profile == null) return
+        appendLog("Starting profile: ${profile.name}")
         getConfig(profile, globalConfigs)?.let {
             startXray(it)
             startVPN(profile)
@@ -211,7 +223,16 @@ class TProxyService : VpnService() {
                 }
                 transparentProxyHelper.startService()
             }
-            false -> XrayCore.start(config.dir, config.file)
+            false -> {
+                val error = XrayCore.start(config.dir, config.file)
+                if (error.isNotEmpty()) {
+                    Log.e("TProxyService", "XrayCore start error: $error")
+                    appendLog("XrayCore start error: $error")
+                    showToast("Xray error: $error")
+                } else {
+                    appendLog("XrayCore service started successfully")
+                }
+            }
         }
     }
 
@@ -224,7 +245,14 @@ class TProxyService : VpnService() {
                 }
                 transparentProxyHelper.stopService()
             }
-            false -> XrayCore.stop()
+            false -> {
+                val error = XrayCore.stop()
+                if (error.isNotEmpty()) {
+                    appendLog("XrayCore stop error: $error")
+                } else {
+                    appendLog("XrayCore stopped")
+                }
+            }
         }
     }
 

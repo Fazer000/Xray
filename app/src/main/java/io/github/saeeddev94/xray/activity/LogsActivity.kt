@@ -16,6 +16,9 @@ import io.github.saeeddev94.xray.R
 import io.github.saeeddev94.xray.Settings
 import io.github.saeeddev94.xray.databinding.ActivityLogsBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -59,13 +62,14 @@ class LogsActivity : AppCompatActivity() {
 
     private fun flush() {
         lifecycleScope.launch(Dispatchers.IO) {
-            val command = if (settings.transparentProxy) {
-                listOf("echo", "''", ">", settings.xrayCoreLogs().absolutePath)
-            } else {
-                listOf("logcat", "-c")
+            try {
+                val logFile = settings.xrayCoreLogs()
+                if (logFile.exists()) {
+                    logFile.writeText("")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-            val process = ProcessBuilder(command).start()
-            process.waitFor()
             withContext(Dispatchers.Main) {
                 binding.logsTextView.text = ""
             }
@@ -86,65 +90,60 @@ class LogsActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private suspend fun streamingLog() = withContext(Dispatchers.IO) {
-        val cmd = if (settings.transparentProxy) {
-            listOf("tail", "-f", settings.xrayCoreLogs().absolutePath)
-        } else {
-            listOf("logcat", "-v", "time", "-s", "GoLog,${BuildConfig.APPLICATION_ID}")
+        val logFile = settings.xrayCoreLogs()
+        if (!logFile.exists()) {
+            runCatching { logFile.createNewFile() }
         }
-        val builder = ProcessBuilder(cmd)
-        builder.environment()["LC_ALL"] = "C"
-        var process: Process? = null
+
         try {
-            process = try {
-                builder.start()
-            } catch (e: IOException) {
-                Log.e(packageName, Log.getStackTraceString(e))
-                return@withContext
-            }
+            java.io.RandomAccessFile(logFile, "r").use { reader ->
+                var lastPointer = 0L
+                if (reader.length() > 100000) {
+                    lastPointer = reader.length() - 100000
+                }
+                reader.seek(lastPointer)
 
-            val stdout = BufferedReader(
-                InputStreamReader(process!!.inputStream, StandardCharsets.UTF_8)
-            )
-            val bufferedLogLines = arrayListOf<String>()
+                val bufferedLogLines = arrayListOf<String>()
 
-            var timeLastNotify = System.nanoTime()
-            // The timeout is initially small so that the view gets populated immediately.
-            var timeout = 1000000000L / 2
-
-            while (true) {
-                val line = stdout.readLine() ?: break
-                bufferedLogLines.add(line)
-                val timeNow = System.nanoTime()
-
-                if (
-                    bufferedLogLines.size < MAX_BUFFERED_LINES &&
-                    (timeNow - timeLastNotify) < timeout && stdout.ready()
-                ) continue
-
-                // Increase the timeout after the initial view has something in it.
-                timeout = 1000000000L * 5 / 2
-                timeLastNotify = timeNow
-
-                withContext(Dispatchers.Main) {
-                    val contentHeight = binding.logsTextView.height
-                    val scrollViewHeight = binding.logsScrollView.height
-                    val isScrolledToBottomAlready =
-                        (binding.logsScrollView.scrollY + scrollViewHeight) >= contentHeight * 0.95
-                    binding.logsTextView.text =
-                        binding.logsTextView.text.toString() + bufferedLogLines.joinToString(
-                            separator = "\n",
-                            postfix = "\n"
-                        )
-                    bufferedLogLines.clear()
-                    if (isScrolledToBottomAlready) {
-                        binding.logsScrollView.post {
-                            binding.logsScrollView.fullScroll(View.FOCUS_DOWN)
+                while (currentCoroutineContext().isActive) {
+                    val line = reader.readLine()
+                    if (line != null) {
+                        val utf8Line = String(line.toByteArray(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8)
+                        bufferedLogLines.add(utf8Line)
+                        if (bufferedLogLines.size >= 100) {
+                            appendLinesToUi(bufferedLogLines)
+                        }
+                    } else {
+                        if (bufferedLogLines.isNotEmpty()) {
+                            appendLinesToUi(bufferedLogLines)
+                        }
+                        kotlinx.coroutines.delay(300)
+                        if (reader.length() < lastPointer) {
+                            lastPointer = 0L
+                            reader.seek(0)
                         }
                     }
+                    lastPointer = reader.filePointer
                 }
             }
-        } finally {
-            process?.destroy()
+        } catch (e: Exception) {
+            Log.e("LogsActivity", "Error reading log file", e)
+        }
+    }
+
+    private suspend fun appendLinesToUi(lines: ArrayList<String>) = withContext(Dispatchers.Main) {
+        val contentHeight = binding.logsTextView.height
+        val scrollViewHeight = binding.logsScrollView.height
+        val isScrolledToBottomAlready = (binding.logsScrollView.scrollY + scrollViewHeight) >= contentHeight * 0.95
+
+        val newText = lines.joinToString("\n") + "\n"
+        binding.logsTextView.append(newText)
+        lines.clear()
+
+        if (isScrolledToBottomAlready) {
+            binding.logsScrollView.post {
+                binding.logsScrollView.fullScroll(View.FOCUS_DOWN)
+            }
         }
     }
 }

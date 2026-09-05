@@ -65,10 +65,51 @@ class LinkHelper(
             return protocol.isNotEmpty()
         }
 
+        fun addFlagEmoji(name: String): String {
+            val lower = name.lowercase()
+            val flagMap = listOf(
+                listOf("germany", "deutschland", "frankfurt", "berlin", "münchen", "munich", "[de]", "(de)", " de ", "-de-", ".de") to "🇩🇪",
+                listOf("usa", "united states", "america", "new york", "los angeles", "miami", "chicago", "dallas", "[us]", "(us)", " us ", "-us-", ".us") to "🇺🇸",
+                listOf("france", "paris", "[fr]", "(fr)", " fr ", "-fr-", ".fr") to "🇫🇷",
+                listOf("finland", "helsinki", "[fi]", "(fi)", " fi ", "-fi-", ".fi") to "🇫🇮",
+                listOf("turkey", "türkiye", "istanbul", "ankara", "[tr]", "(tr)", " tr ", "-tr-", ".tr") to "🇹🇷",
+                listOf("netherlands", "holland", "amsterdam", "[nl]", "(nl)", " nl ", "-nl-", ".nl") to "🇳🇱",
+                listOf("russia", "moscow", "spb", "petersburg", "[ru]", "(ru)", " ru ", "-ru-", ".ru") to "🇷🇺",
+                listOf("spain", "madrid", "barcelona", "[es]", "(es)", " es ", "-es-", ".es") to "🇪🇸",
+                listOf("united kingdom", "great britain", "london", "uk", "[gb]", "(gb)", " gb ", "-gb-", ".gb") to "🇬🇧",
+                listOf("singapore", "[sg]", "(sg)", " sg ", "-sg-", ".sg") to "🇸🇬",
+                listOf("japan", "tokyo", "[jp]", "(jp)", " jp ", "-jp-", ".jp") to "🇯🇵",
+                listOf("sweden", "stockholm", "[se]", "(se)", " se ", "-se-", ".se") to "🇸🇪",
+                listOf("poland", "warsaw", "[pl]", "(pl)", " pl ", "-pl-", ".pl") to "🇵🇱",
+                listOf("canada", "toronto", "montreal", "[ca]", "(ca)", " ca ", "-ca-", ".ca") to "🇨🇦",
+                listOf("ukraine", "kyiv", "kiev", "[ua]", "(ua)", " ua ", "-ua-", ".ua") to "🇺🇦",
+                listOf("kazakhstan", "almaty", "astana", "[kz]", "(kz)", " kz ", "-kz-", ".kz") to "🇰🇿",
+                listOf("georgia", "tbilisi", "[ge]", "(ge)", " ge ", "-ge-", ".ge") to "🇬🇪",
+                listOf("armenia", "yerevan", "[am]", "(am)", " am ", "-am-", ".am") to "🇦🇲",
+                listOf("italy", "rome", "milan", "[it]", "(it)", " it ", "-it-", ".it") to "🇮🇹",
+                listOf("south korea", "korea", "seoul", "[kr]", "(kr)", " kr ", "-kr-", ".kr") to "🇰🇷",
+                listOf("hong kong", "[hk]", "(hk)", " hk ", "-hk-", ".hk") to "🇭🇰"
+            )
+
+            for ((keywords, flag) in flagMap) {
+                if (keywords.any { lower.contains(it) }) {
+                    if (!name.contains(flag)) {
+                        return "$flag $name"
+                    }
+                    return name
+                }
+            }
+
+            if (name.startsWith("⚡") || name.startsWith("🌐") || name.startsWith("🛡️") || name.startsWith("🚀")) {
+                return name
+            }
+            return "🌐 $name"
+        }
+
         fun generateServerName(outbound: JsonObject, parentRemark: String = ""): String {
             val tag = outbound["tag"]?.jsonPrimitive?.contentOrNull?.trim() ?: ""
             val sendThrough = outbound["sendThrough"]?.jsonPrimitive?.contentOrNull?.trim() ?: ""
-            val protocol = outbound["protocol"]?.jsonPrimitive?.contentOrNull?.trim() ?: ""
+            val protocol = outbound["protocol"]?.jsonPrimitive?.contentOrNull?.trim()?.uppercase() ?: ""
             val streamSettings = outbound["streamSettings"] as? JsonObject
 
             val tlsSettings = streamSettings?.get("tlsSettings") as? JsonObject
@@ -98,17 +139,30 @@ class LinkHelper(
                 ?: settingsObj?.get("port")?.jsonPrimitive?.contentOrNull
                 ?: ""
 
-            val baseLabel = when {
+            var rawLabel = when {
                 tag.isNotBlank() && !tag.equals("proxy", ignoreCase = true) && !tag.startsWith("proxy-", ignoreCase = true) -> tag
                 sendThrough.isNotBlank() -> sendThrough
                 sni.isNotBlank() && address.isNotBlank() && sni != address -> "$sni ($address)"
                 sni.isNotBlank() -> sni
                 address.isNotBlank() -> if (port.isNotBlank()) "$address:$port" else address
-                protocol.isNotBlank() -> "${protocol.uppercase()} Server"
+                protocol.isNotBlank() -> "$protocol Server"
                 else -> "Server"
             }
 
-            return baseLabel
+            if (rawLabel.equals("Server", ignoreCase = true) || 
+                rawLabel.startsWith("vless-", ignoreCase = true) || 
+                rawLabel.startsWith("vmess-", ignoreCase = true) || 
+                rawLabel.startsWith("trojan-", ignoreCase = true) || 
+                rawLabel.startsWith("shadowsocks-", ignoreCase = true)
+            ) {
+                rawLabel = when {
+                    address.isNotBlank() -> if (sni.isNotBlank() && sni != address) "$sni ($address)" else address
+                    protocol.isNotBlank() -> "$protocol Node"
+                    else -> "VPN Server"
+                }
+            }
+
+            return addFlagEmoji(rawLabel)
         }
 
         fun remark(uri: URI, default: String = ""): String {
@@ -158,6 +212,7 @@ class LinkHelper(
     private fun log(): JsonObject {
         return buildJsonObject {
             put("loglevel", "warning")
+            put("error", settings.xrayCoreLogs().absolutePath)
         }
     }
 

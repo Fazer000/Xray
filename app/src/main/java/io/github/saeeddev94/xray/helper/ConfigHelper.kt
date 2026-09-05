@@ -7,6 +7,7 @@ import io.github.saeeddev94.xray.extensions.putValue
 import io.github.saeeddev94.xray.extensions.remove
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 class ConfigHelper(
@@ -23,9 +24,26 @@ class ConfigHelper(
         process("outbounds", config.outbounds, config.outboundsMode)
         process("routing", config.routing, config.routingMode)
 
+        ensureLogPath(settings)
+
         if (settings.tproxyHotspot || settings.tproxyTethering) {
             sharedInbounds()
         }
+    }
+
+    private fun ensureLogPath(settings: Settings) {
+        val currentLog = JsonHelper.getObject(base, "log")
+        val logMap = mutableMapOf<String, kotlinx.serialization.json.JsonElement>()
+        currentLog.forEach { (k, v) -> logMap[k] = v }
+
+        if (!logMap.containsKey("error") || logMap["error"]?.jsonPrimitive?.contentOrNull.isNullOrBlank()) {
+            logMap["error"] = kotlinx.serialization.json.JsonPrimitive(settings.xrayCoreLogs().absolutePath)
+        }
+        if (!logMap.containsKey("loglevel")) {
+            logMap["loglevel"] = kotlinx.serialization.json.JsonPrimitive("warning")
+        }
+
+        base = base.putValue("log", JsonObject(logMap))
     }
 
     override fun toString(): String = base.encodeToString()
