@@ -24,8 +24,8 @@ class LinkHelper(
 ) {
 
     private val success: Boolean
-    private val outbound: JsonObject?
-    private var remark: String = REMARK_DEFAULT
+    private val proxyOutbounds = mutableListOf<JsonObject>()
+    private var defaultRemark: String = REMARK_DEFAULT
 
     init {
         val base64: String = XrayCore.json(link)
@@ -38,17 +38,96 @@ class LinkHelper(
             ?.booleanOrNull
             ?: false
 
-        outbound = response["data"]
+        val rawOutbounds = response["data"]
             ?.jsonObject
             ?.get("outbounds")
             ?.jsonArray
-            ?.firstOrNull()
-            ?.jsonObject
+
+        if (rawOutbounds != null) {
+            for (element in rawOutbounds) {
+                val obj = element as? JsonObject ?: continue
+                if (isProxyOutbound(obj)) {
+                    proxyOutbounds.add(obj)
+                }
+            }
+        }
     }
 
     companion object {
         const val REMARK_DEFAULT = "New Profile"
         const val LINK_DEFAULT = "New Link"
+
+        fun isProxyOutbound(outbound: JsonObject): Boolean {
+            val protocol = outbound["protocol"]?.jsonPrimitive?.contentOrNull?.lowercase() ?: ""
+            val tag = outbound["tag"]?.jsonPrimitive?.contentOrNull?.lowercase() ?: ""
+            if (protocol in listOf("freedom", "blackhole", "dns", "v2rayou")) return false
+            if (tag in listOf("direct", "block", "dns-out", "direct-fragment")) return false
+            return protocol.isNotEmpty()
+        }
+
+        fun generateServerName(outbound: JsonObject, parentRemark: String = ""): String {
+            val sendThrough = outbound["sendThrough"]?.jsonPrimitive?.contentOrNull
+            if (!sendThrough.isNullOrBlank()) return sendThrough
+
+            val tag = outbound["tag"]?.jsonPrimitive?.contentOrNull ?: ""
+            if (tag.isNotEmpty() && !tag.startsWith("proxy", ignoreCase = true)) {
+                return tag
+            }
+
+            val protocol = outbound["protocol"]?.jsonPrimitive?.contentOrNull ?: ""
+            val streamSettings = outbound["streamSettings"] as? JsonObject
+            val network = streamSettings?.get("network")?.jsonPrimitive?.contentOrNull ?: ""
+
+            val tlsSettings = streamSettings?.get("tlsSettings") as? JsonObject
+            val wsSettings = streamSettings?.get("wsSettings") as? JsonObject
+            val grpcSettings = streamSettings?.get("grpcSettings") as? JsonObject
+            val realitySettings = streamSettings?.get("realitySettings") as? JsonObject
+            val headers = wsSettings?.get("headers") as? JsonObject
+
+            val sni = tlsSettings?.get("serverName")?.jsonPrimitive?.contentOrNull
+                ?: realitySettings?.get("serverName")?.jsonPrimitive?.contentOrNull
+                ?: headers?.get("host")?.jsonPrimitive?.contentOrNull
+                ?: wsSettings?.get("host")?.jsonPrimitive?.contentOrNull
+                ?: grpcSettings?.get("serviceName")?.jsonPrimitive?.contentOrNull
+
+            val settingsObj = outbound["settings"] as? JsonObject
+            val vnext = settingsObj?.get("vnext")?.jsonArray?.firstOrNull() as? JsonObject
+            val servers = settingsObj?.get("servers")?.jsonArray?.firstOrNull() as? JsonObject
+
+            val address = vnext?.get("address")?.jsonPrimitive?.contentOrNull
+                ?: servers?.get("address")?.jsonPrimitive?.contentOrNull
+                ?: settingsObj?.get("address")?.jsonPrimitive?.contentOrNull
+                ?: ""
+
+            val port = vnext?.get("port")?.jsonPrimitive?.contentOrNull
+                ?: servers?.get("port")?.jsonPrimitive?.contentOrNull
+                ?: settingsObj?.get("port")?.jsonPrimitive?.contentOrNull
+                ?: ""
+
+            val protoUpper = protocol.uppercase()
+            val netUpper = network.uppercase()
+            val protoLabel = if (netUpper.isNotEmpty() && netUpper != protoUpper) {
+                "$protoUpper-$netUpper"
+            } else {
+                protoUpper
+            }
+
+            val hostLabel = when {
+                !sni.isNullOrBlank() && address.isNotBlank() && sni != address -> "$sni [$address]"
+                !sni.isNullOrBlank() -> sni
+                address.isNotBlank() -> address
+                else -> if (tag.isNotBlank()) tag else "Server"
+            }
+
+            val portLabel = if (port.isNotBlank()) ":$port" else ""
+            val name = "$hostLabel ($protoLabel$portLabel)"
+
+            return if (parentRemark.isNotBlank() && parentRemark != REMARK_DEFAULT) {
+                "$parentRemark - $name"
+            } else {
+                name
+            }
+        }
 
         fun remark(uri: URI, default: String = ""): String {
             val name = uri.fragment ?: ""
@@ -63,11 +142,36 @@ class LinkHelper(
         }
     }
 
-    fun isValid(): Boolean = success && outbound != null
+    fun isValid(): Boolean = success && proxyOutbounds.isNotEmpty()
 
-    fun json(): String = config().encodeToString() + "\n"
+    fun count(): Int = proxyOutbounds.size
 
-    fun remark(): String = remark
+    fun remark(): String = remark(0)
+
+    fun remark(index: Int): String {
+        val outbound = proxyOutbounds.getOrNull(index) ?: return REMARK_DEFAULT
+        val sendThrough = outbound["sendThrough"]?.jsonPrimitive?.contentOrNull
+        if (!sendThrough.isNullOrBlank()) return sendThrough
+        return generateServerName(outbound, defaultRemark)
+    }
+
+    fun json(): String = json(0)
+
+    fun json(index: Int): String {
+        val outbound = proxyOutbounds.getOrNull(index) ?: return ""
+        return config(outbound).encodeToString() + "\n"
+    }
+
+    fun profiles(): List<Pair<String, String>> {
+        val titleCounts = mutableMapOf<String, Int>()
+        return proxyOutbounds.mapIndexed { index, outbound ->
+            val baseName = remark(index)
+            val currentCount = (titleCounts[baseName] ?: 0) + 1
+            titleCounts[baseName] = currentCount
+            val finalName = if (currentCount > 1) "$baseName #$currentCount" else baseName
+            Pair(finalName, json(index))
+        }
+    }
 
     private fun log(): JsonObject {
         return buildJsonObject {
@@ -171,15 +275,13 @@ class LinkHelper(
         }
     }
 
-    private fun outbounds(): JsonArray {
-        val outbound = this@LinkHelper.outbound!!
-
-        remark = outbound["sendThrough"]
+    private fun outbounds(targetOutbound: JsonObject): JsonArray {
+        defaultRemark = targetOutbound["sendThrough"]
             ?.jsonPrimitive
             ?.contentOrNull ?: REMARK_DEFAULT
 
         val proxy = buildJsonObject {
-            for ((key, value) in outbound) {
+            for ((key, value) in targetOutbound) {
                 if (key != "sendThrough" && key != "tag") {
                     put(key, value)
                 }
@@ -258,12 +360,12 @@ class LinkHelper(
         }
     }
 
-    private fun config(): JsonObject {
+    private fun config(targetOutbound: JsonObject): JsonObject {
         return buildJsonObject {
             put("log", log())
             put("dns", dns())
             put("inbounds", inbounds())
-            put("outbounds", outbounds())
+            put("outbounds", outbounds(targetOutbound))
             put("routing", routing())
         }
     }
