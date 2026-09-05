@@ -45,5 +45,9 @@
             android:id="@+id/settings"
             android:icon="@drawable/baseline_settings"
             android:title="@string/settings" />
+        <item
+            android:id="@+id/checkUpdate"
+            android:icon="@drawable/baseline_download"
+            android:title="@string/checkUpdate" />
     </group>
 </menu>

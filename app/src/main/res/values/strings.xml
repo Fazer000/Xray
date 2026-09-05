@@ -100,4 +100,16 @@
     <string name="tproxyTethering">TPROXY Tethering</string>
     <string name="transparentProxy">Transparent Proxy</string>
     <string name="tunRoutes">Tun Routes</string>
+
+    <!-- App Update -->
+    <string name="checkUpdate">Check for Updates</string>
+    <string name="checkingUpdate">Checking for updates…</string>
+    <string name="noUpdateAvailable">You are using the latest version</string>
+    <string name="updateAvailable">New version available: %s</string>
+    <string name="downloadingUpdate">Downloading update…</string>
+    <string name="downloadFailed">Download failed: %s</string>
+    <string name="installPermissionRequired">Permission required to install unknown apps. Please allow installation in settings.</string>
+    <string name="btnUpdate">Update</string>
+    <string name="btnInstall">Install</string>
+    <string name="btnCancel">Cancel</string>
 </resources>

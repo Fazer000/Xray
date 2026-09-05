@@ -42,6 +42,7 @@ import io.github.saeeddev94.xray.helper.HttpHelper
 import io.github.saeeddev94.xray.helper.LinkHelper
 import io.github.saeeddev94.xray.helper.ProfileTouchHelper
 import io.github.saeeddev94.xray.helper.TransparentProxyHelper
+import io.github.saeeddev94.xray.helper.UpdateHelper
 import io.github.saeeddev94.xray.service.TProxyService
 import io.github.saeeddev94.xray.viewmodel.LinkViewModel
 import io.github.saeeddev94.xray.viewmodel.ProfileViewModel
@@ -233,14 +234,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.assets -> Intent(applicationContext, AssetsActivity::class.java)
-            R.id.links -> Intent(applicationContext, LinksActivity::class.java)
-            R.id.logs -> Intent(applicationContext, LogsActivity::class.java)
-            R.id.appsRouting -> Intent(applicationContext, AppsRoutingActivity::class.java)
-            R.id.configs -> Intent(applicationContext, ConfigsActivity::class.java)
-            R.id.settings -> Intent(applicationContext, SettingsActivity::class.java)
-            else -> null
-        }?.let { startActivity(it) }
+            R.id.assets -> startActivity(Intent(applicationContext, AssetsActivity::class.java))
+            R.id.links -> startActivity(Intent(applicationContext, LinksActivity::class.java))
+            R.id.logs -> startActivity(Intent(applicationContext, LogsActivity::class.java))
+            R.id.appsRouting -> startActivity(Intent(applicationContext, AppsRoutingActivity::class.java))
+            R.id.configs -> startActivity(Intent(applicationContext, ConfigsActivity::class.java))
+            R.id.settings -> startActivity(Intent(applicationContext, SettingsActivity::class.java))
+            R.id.checkUpdate -> UpdateHelper(this, lifecycleScope).checkUpdate(manual = true)
+        }
         binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
