@@ -311,6 +311,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
         if (menu == null) return super.onPrepareOptionsMenu(menu)
         val isServersTab = binding.screenServers.isVisible
+        menu.findItem(R.id.pingAll)?.isVisible = isServersTab
         menu.findItem(R.id.refreshLinks)?.isVisible = isServersTab || binding.screenSubscriptions.isVisible
         menu.findItem(R.id.newProfile)?.isVisible = isServersTab
         return super.onPrepareOptionsMenu(menu)
@@ -318,6 +319,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.pingAll -> if (::profileAdapter.isInitialized) profileAdapter.pingAll()
             R.id.refreshLinks -> refreshLinks()
             R.id.newProfile -> startActivity(ProfileActivity.getIntent(applicationContext))
             R.id.scanQrCode -> cameraPermission.launch(android.Manifest.permission.CAMERA)

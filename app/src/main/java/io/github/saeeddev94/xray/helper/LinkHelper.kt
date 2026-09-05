@@ -66,17 +66,12 @@ class LinkHelper(
         }
 
         fun generateServerName(outbound: JsonObject, parentRemark: String = ""): String {
-            val sendThrough = outbound["sendThrough"]?.jsonPrimitive?.contentOrNull
-            if (!sendThrough.isNullOrBlank()) return sendThrough
-
             val tag = outbound["tag"]?.jsonPrimitive?.contentOrNull ?: ""
-            if (tag.isNotEmpty() && !tag.startsWith("proxy", ignoreCase = true)) {
-                return tag
-            }
-
+            val sendThrough = outbound["sendThrough"]?.jsonPrimitive?.contentOrNull ?: ""
             val protocol = outbound["protocol"]?.jsonPrimitive?.contentOrNull ?: ""
             val streamSettings = outbound["streamSettings"] as? JsonObject
             val network = streamSettings?.get("network")?.jsonPrimitive?.contentOrNull ?: ""
+            val security = streamSettings?.get("security")?.jsonPrimitive?.contentOrNull ?: ""
 
             val tlsSettings = streamSettings?.get("tlsSettings") as? JsonObject
             val wsSettings = streamSettings?.get("wsSettings") as? JsonObject
@@ -106,24 +101,37 @@ class LinkHelper(
 
             val protoUpper = protocol.uppercase()
             val netUpper = network.uppercase()
-            val protoLabel = if (netUpper.isNotEmpty() && netUpper != protoUpper) {
-                "$protoUpper-$netUpper"
-            } else {
-                protoUpper
-            }
+            val secUpper = security.uppercase()
 
-            val hostLabel = when {
-                !sni.isNullOrBlank() && address.isNotBlank() && sni != address -> "$sni [$address]"
+            val protoParts = mutableListOf<String>()
+            if (protoUpper.isNotBlank()) protoParts.add(protoUpper)
+            if (netUpper.isNotBlank() && netUpper != protoUpper && netUpper != "TCP") protoParts.add(netUpper)
+            if (secUpper == "REALITY") protoParts.add("REALITY")
+
+            val protoTag = protoParts.joinToString("-")
+            val portTag = if (port.isNotBlank()) ":$port" else ""
+            val fullProto = if (protoTag.isNotBlank() || portTag.isNotBlank()) "[$protoTag$portTag]" else ""
+
+            val baseLabel = when {
+                tag.isNotBlank() && !tag.equals("proxy", ignoreCase = true) && !tag.startsWith("proxy-", ignoreCase = true) -> tag
+                sendThrough.isNotBlank() && sendThrough.contains(" ") -> sendThrough
+                !sni.isNullOrBlank() && address.isNotBlank() && sni != address -> "$sni ($address)"
                 !sni.isNullOrBlank() -> sni
                 address.isNotBlank() -> address
-                else -> if (tag.isNotBlank()) tag else "Server"
+                sendThrough.isNotBlank() -> sendThrough
+                else -> "Server"
             }
 
-            val portLabel = if (port.isNotBlank()) ":$port" else ""
-            val name = "$hostLabel ($protoLabel$portLabel)"
+            val name = if (fullProto.isNotBlank() && !baseLabel.contains(protoTag, ignoreCase = true)) {
+                "$baseLabel $fullProto"
+            } else {
+                baseLabel
+            }
 
-            return if (parentRemark.isNotBlank() && parentRemark != REMARK_DEFAULT) {
-                "$parentRemark - $name"
+            val cleanParent = parentRemark.trim()
+            val isLongParent = cleanParent.length > 25 || cleanParent.contains("http") || cleanParent.contains("fwqfw") || cleanParent.contains(".website") || cleanParent.contains(".com")
+            return if (cleanParent.isNotBlank() && cleanParent != REMARK_DEFAULT && !isLongParent && !name.startsWith(cleanParent, ignoreCase = true)) {
+                "$cleanParent - $name"
             } else {
                 name
             }

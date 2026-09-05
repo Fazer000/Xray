@@ -178,37 +178,62 @@ class LinksManagerActivity : AppCompatActivity() {
                     }
                 }.encodeToString()
 
-                val autoTitle = if (parentRemark.contains("auto", ignoreCase = true)) parentRemark else "$parentRemark (Auto)"
+                val cleanParentRemark = if (parentRemark.length > 30 || parentRemark.contains("http") || parentRemark.contains("fwqfw")) {
+                    link.name.ifBlank { "AUTO Balancer" }
+                } else {
+                    parentRemark
+                }
+
+                val autoTitle = if (cleanParentRemark.contains("auto", ignoreCase = true)) cleanParentRemark else "$cleanParentRemark (Auto)"
                 list.add(Profile().apply {
                     linkId = link.id
                     name = autoTitle
                     config = autoJson
                 })
 
+                val seenConfigs = mutableSetOf<String>()
+
                 // 2. Individual server profiles
                 for (proxyOutbound in proxyOutbounds) {
                     val serverName = LinkHelper.generateServerName(proxyOutbound)
-                    val baseTitle = if (parentRemark.isNotBlank() && parentRemark != LinkHelper.REMARK_DEFAULT && parentRemark != link.name) {
-                        "$parentRemark - $serverName"
+                    val baseTitle = if (cleanParentRemark.isNotBlank() && 
+                        cleanParentRemark != LinkHelper.REMARK_DEFAULT && 
+                        cleanParentRemark != link.name && 
+                        !cleanParentRemark.contains("Auto", ignoreCase = true) &&
+                        !serverName.startsWith(cleanParentRemark, ignoreCase = true)
+                    ) {
+                        "$cleanParentRemark - $serverName"
                     } else {
                         serverName
                     }
+
+                    val serverConfigObj = buildSingleServerConfig(configuration, proxyOutbound, nonProxyOutbounds)
+                    val configStr = serverConfigObj.encodeToString()
+
+                    if (seenConfigs.contains(configStr)) {
+                        continue // Skip exact duplicate configs
+                    }
+                    seenConfigs.add(configStr)
 
                     val count = (titleCounts[baseTitle] ?: 0) + 1
                     titleCounts[baseTitle] = count
                     val profileTitle = if (count > 1) "$baseTitle #$count" else baseTitle
 
-                    val serverConfigObj = buildSingleServerConfig(configuration, proxyOutbound, nonProxyOutbounds)
                     list.add(Profile().apply {
                         linkId = link.id
                         name = profileTitle
-                        config = serverConfigObj.encodeToString()
+                        config = configStr
                     })
                 }
             } else if (proxyOutbounds.size == 1) {
                 val singleProxy = proxyOutbounds[0]
                 val serverName = LinkHelper.generateServerName(singleProxy)
-                val baseTitle = if (parentRemark.isNotBlank() && parentRemark != LinkHelper.REMARK_DEFAULT && parentRemark != link.name) {
+                val baseTitle = if (parentRemark.isNotBlank() && 
+                    parentRemark.length <= 30 &&
+                    parentRemark != LinkHelper.REMARK_DEFAULT && 
+                    parentRemark != link.name && 
+                    !serverName.startsWith(parentRemark, ignoreCase = true)
+                ) {
                     "$parentRemark - $serverName"
                 } else {
                     serverName
