@@ -1,16 +1,15 @@
 package io.github.saeeddev94.xray.adapter
 
-import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.cardview.widget.CardView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 import io.github.saeeddev94.xray.R
 import io.github.saeeddev94.xray.database.Link
 
@@ -30,7 +29,7 @@ class LinkAdapter : ListAdapter<Link, LinkAdapter.LinkHolder>(diffCallback) {
     }
 
     inner class LinkHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val card = view.findViewById<CardView>(R.id.linkCard)
+        private val card = view.findViewById<MaterialCardView>(R.id.linkCard)
         private val name = view.findViewById<TextView>(R.id.linkName)
         private val type = view.findViewById<TextView>(R.id.linkType)
         private val edit = view.findViewById<LinearLayout>(R.id.linkEdit)
@@ -38,10 +37,13 @@ class LinkAdapter : ListAdapter<Link, LinkAdapter.LinkHolder>(diffCallback) {
 
         fun bind(index: Int) {
             val link = getItem(index)
-            val color = if (link.isActive) R.color.btnColor else R.color.btnColorDisabled
-            card.backgroundTintList = ColorStateList.valueOf(
-                ContextCompat.getColor(card.context, color)
-            )
+            if (link.isActive) {
+                card.setCardBackgroundColor(Color.parseColor("#1E293B"))
+                card.strokeColor = Color.parseColor("#334155")
+            } else {
+                card.setCardBackgroundColor(Color.parseColor("#0F172A"))
+                card.strokeColor = Color.parseColor("#1E293B")
+            }
             name.text = link.name
             type.text = link.type.name
             edit.setOnClickListener { onEditClick(link) }

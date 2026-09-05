@@ -7,33 +7,36 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.activity.viewModels
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.navigation.NavigationView
 import com.google.android.material.tabs.TabLayout
 import io.github.saeeddev94.xray.BuildConfig
 import io.github.saeeddev94.xray.R
 import io.github.saeeddev94.xray.Settings
+import io.github.saeeddev94.xray.adapter.LinkAdapter
 import io.github.saeeddev94.xray.adapter.ProfileAdapter
 import io.github.saeeddev94.xray.database.Link
 import io.github.saeeddev94.xray.databinding.ActivityMainBinding
@@ -52,7 +55,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URI
 
-class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+class MainActivity : AppCompatActivity() {
 
     private val clipboardManager by lazy { getSystemService(ClipboardManager::class.java) }
     private val settings by lazy { Settings(applicationContext) }
@@ -63,6 +66,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var profileAdapter: ProfileAdapter
+    private val linkAdapter by lazy { LinkAdapter() }
     private lateinit var tabs: List<Link>
     private val profilesRecyclerView by lazy { findViewById<RecyclerView>(R.id.profilesRecyclerView) }
     private val profiles = arrayListOf<ProfileList>()
@@ -113,30 +117,73 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             profileViewModel.next(settings.selectedLink)
         }
 
-        override fun onTabUnselected(tab: TabLayout.Tab?) {
-        }
-
-        override fun onTabReselected(tab: TabLayout.Tab?) {
-        }
+        override fun onTabUnselected(tab: TabLayout.Tab?) {}
+        override fun onTabReselected(tab: TabLayout.Tab?) {}
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            binding.appBarLayout.setPadding(0, systemBars.top, 0, 0)
+            binding.bottomNav.setPadding(0, 0, 0, systemBars.bottom)
+            insets
+        }
+
         setSupportActionBar(binding.toolbar)
+
+        setupBottomNavigation()
+        setupServersTab()
+        setupSubscriptionsTab()
+        setupSettingsTab()
+
+        intent?.data?.let { deepLink ->
+            val pathSegments = deepLink.pathSegments
+            if (pathSegments.isNotEmpty()) processLink(pathSegments[0])
+        }
+    }
+
+    private fun setupBottomNavigation() {
+        binding.bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_servers -> {
+                    binding.screenServers.isVisible = true
+                    binding.screenSubscriptions.isVisible = false
+                    binding.screenSettings.isVisible = false
+                    title = "Сервера"
+                    invalidateOptionsMenu()
+                    true
+                }
+                R.id.nav_subscriptions -> {
+                    binding.screenServers.isVisible = false
+                    binding.screenSubscriptions.isVisible = true
+                    binding.screenSettings.isVisible = false
+                    title = "Подписки"
+                    invalidateOptionsMenu()
+                    true
+                }
+                R.id.nav_settings -> {
+                    binding.screenServers.isVisible = false
+                    binding.screenSubscriptions.isVisible = false
+                    binding.screenSettings.isVisible = true
+                    title = "Настройки"
+                    invalidateOptionsMenu()
+                    true
+                }
+                else -> false
+            }
+        }
+        title = "Сервера"
+    }
+
+    private fun setupServersTab() {
         binding.toggleButton.setOnClickListener { onToggleButtonClick() }
         binding.pingBox.setOnClickListener { ping() }
-        binding.navView.menu.findItem(R.id.appVersion).title = BuildConfig.VERSION_NAME
-        binding.navView.menu.findItem(R.id.xrayVersion).title = XrayCore.version()
-        binding.navView.setNavigationItemSelectedListener(this)
-        ActionBarDrawerToggle(
-            this, binding.drawerLayout, binding.toolbar,
-            R.string.drawerOpen, R.string.drawerClose
-        ).also {
-            binding.drawerLayout.addDrawerListener(it)
-            it.syncState()
-        }
+
         profileAdapter = ProfileAdapter(
             lifecycleScope,
             settings,
@@ -151,6 +198,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         ItemTouchHelper(ProfileTouchHelper(profileAdapter)).also {
             it.attachToRecyclerView(profilesRecyclerView)
         }
+
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 linkViewModel.tabs.collectLatest { onNewTabs(it) }
@@ -171,10 +219,51 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
             }
         }
-        intent?.data?.let { deepLink ->
-            val pathSegments = deepLink.pathSegments
-            if (pathSegments.isNotEmpty()) processLink(pathSegments[0])
+    }
+
+    private fun setupSubscriptionsTab() {
+        binding.linksRecyclerView.layoutManager = LinearLayoutManager(this)
+        binding.linksRecyclerView.itemAnimator = DefaultItemAnimator()
+        binding.linksRecyclerView.adapter = linkAdapter
+
+        linkAdapter.onEditClick = { link -> openLink(link) }
+        linkAdapter.onDeleteClick = { link -> deleteLink(link) }
+
+        binding.addLinkFab.setOnClickListener { openLink() }
+
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                linkViewModel.links.collectLatest { linksList ->
+                    linkAdapter.submitList(linksList)
+                    binding.emptySubscriptionsLayout.isVisible = linksList.isEmpty()
+                    binding.linksRecyclerView.isVisible = linksList.isNotEmpty()
+                }
+            }
         }
+    }
+
+    private fun setupSettingsTab() {
+        binding.settingsAssets.setOnClickListener {
+            startActivity(Intent(applicationContext, AssetsActivity::class.java))
+        }
+        binding.settingsAppsRouting.setOnClickListener {
+            startActivity(Intent(applicationContext, AppsRoutingActivity::class.java))
+        }
+        binding.settingsConfigs.setOnClickListener {
+            startActivity(Intent(applicationContext, ConfigsActivity::class.java))
+        }
+        binding.settingsApp.setOnClickListener {
+            startActivity(Intent(applicationContext, SettingsActivity::class.java))
+        }
+        binding.settingsLogs.setOnClickListener {
+            startActivity(Intent(applicationContext, LogsActivity::class.java))
+        }
+        binding.settingsCheckUpdate.setOnClickListener {
+            UpdateHelper(this, lifecycleScope).checkUpdate(manual = true)
+        }
+
+        binding.appVersionText.text = "Версия приложения: ${BuildConfig.VERSION_NAME}"
+        binding.xrayVersionText.text = "Ядро Xray: ${XrayCore.version()}"
     }
 
     override fun onResume() {
@@ -182,6 +271,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         lifecycleScope.launch {
             if (settings.transparentProxy) transparentProxyHelper.install()
         }
+        updateActiveProfileName()
     }
 
     override fun onStart() {
@@ -218,6 +308,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return true
     }
 
+    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+        if (menu == null) return super.onPrepareOptionsMenu(menu)
+        val isServersTab = binding.screenServers.isVisible
+        menu.findItem(R.id.refreshLinks)?.isVisible = isServersTab || binding.screenSubscriptions.isVisible
+        menu.findItem(R.id.newProfile)?.isVisible = isServersTab
+        return super.onPrepareOptionsMenu(menu)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.refreshLinks -> refreshLinks()
@@ -229,20 +327,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }.getOrNull()?.let { processLink(it) }
             }
         }
-        return true
-    }
-
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.assets -> startActivity(Intent(applicationContext, AssetsActivity::class.java))
-            R.id.links -> startActivity(Intent(applicationContext, LinksActivity::class.java))
-            R.id.logs -> startActivity(Intent(applicationContext, LogsActivity::class.java))
-            R.id.appsRouting -> startActivity(Intent(applicationContext, AppsRoutingActivity::class.java))
-            R.id.configs -> startActivity(Intent(applicationContext, ConfigsActivity::class.java))
-            R.id.settings -> startActivity(Intent(applicationContext, SettingsActivity::class.java))
-            R.id.checkUpdate -> UpdateHelper(this, lifecycleScope).checkUpdate(manual = true)
-        }
-        binding.drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
 
@@ -258,7 +342,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun onNewTabs(value: List<Link>) {
         binding.linksTab.removeOnTabSelectedListener(linksTabListener)
         binding.linksTab.removeAllTabs()
-        binding.linksTab.isVisible = !value.isEmpty()
+        binding.linksTab.isVisible = value.isNotEmpty()
         val list = tabsList(value)
         val index = tabsIndex(list)
         list.forEach {
@@ -276,23 +360,45 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         profiles.addAll(ArrayList(value))
         @Suppress("NotifyDataSetChanged")
         profileAdapter.notifyDataSetChanged()
+        updateActiveProfileName()
+    }
+
+    private fun updateActiveProfileName() {
+        val selectedId = settings.selectedProfile
+        if (selectedId <= 0L) {
+            binding.activeProfileName.text = "Сервер не выбран"
+            return
+        }
+        val currentProfile = profiles.firstOrNull { it.id == selectedId }
+        if (currentProfile != null) {
+            binding.activeProfileName.text = currentProfile.name
+        } else {
+            lifecycleScope.launch {
+                val profile = profileViewModel.find(selectedId)
+                if (profile.id > 0L) {
+                    binding.activeProfileName.text = profile.name
+                } else {
+                    binding.activeProfileName.text = "Сервер не выбран"
+                }
+            }
+        }
     }
 
     private fun vpnStartStatus() {
         isRunning = true
+        binding.vpnStatusDot.setBackgroundResource(R.drawable.ic_dot_status_active)
+        binding.vpnStatusText.text = "Подключено"
         binding.toggleButton.text = getString(R.string.vpnStop)
-        binding.toggleButton.backgroundTintList = ColorStateList.valueOf(
-            ContextCompat.getColor(this, R.color.primaryColor)
-        )
+        binding.toggleButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#EF4444"))
         binding.pingResult.text = getString(R.string.pingConnected)
     }
 
     private fun vpnStopStatus() {
         isRunning = false
+        binding.vpnStatusDot.setBackgroundResource(R.drawable.ic_dot_status_inactive)
+        binding.vpnStatusText.text = "Отключено"
         binding.toggleButton.text = getString(R.string.vpnStart)
-        binding.toggleButton.backgroundTintList = ColorStateList.valueOf(
-            ContextCompat.getColor(this, R.color.btnColor)
-        )
+        binding.toggleButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#2563EB"))
         binding.pingResult.text = getString(R.string.pingNotConnected)
     }
 
@@ -328,6 +434,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if (selectedProfile == profile.id) return@withContext
                 settings.selectedProfile = profile.id
                 profileAdapter.notifyItemChanged(index)
+                updateActiveProfileName()
                 if (isRunning) TProxyService.newConfig(applicationContext)
                 if (ref == null || ref.id == profile.id) return@withContext
                 profiles.indexOfFirst { it.id == ref.id }.let {
@@ -345,10 +452,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private fun profileDelete(profile: ProfileList) {
         if (isRunning && settings.selectedProfile == profile.id) return
         MaterialAlertDialogBuilder(this)
-            .setTitle("Delete Profile#${profile.index + 1} ?")
-            .setMessage("\"${profile.name}\" will delete forever !!")
-            .setNegativeButton("No", null)
-            .setPositiveButton("Yes") { _, _ ->
+            .setTitle("Удалить сервер?")
+            .setMessage("\"${profile.name}\" будет удален навсегда.")
+            .setNegativeButton("Отмена", null)
+            .setPositiveButton("Удалить") { _, _ ->
                 lifecycleScope.launch {
                     val ref = profileViewModel.find(profile.id)
                     val id = ref.id
@@ -358,9 +465,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         if (selectedProfile == id) {
                             settings.selectedProfile = 0L
                         }
+                        updateActiveProfileName()
                     }
                 }
             }.show()
+    }
+
+    private fun openLink(link: Link = Link()) {
+        val intent = LinksManagerActivity.openLink(applicationContext, link)
+        linksManager.launch(intent)
+    }
+
+    private fun deleteLink(link: Link) {
+        val intent = LinksManagerActivity.deleteLink(applicationContext, link)
+        linksManager.launch(intent)
     }
 
     private fun processLink(link: String) {

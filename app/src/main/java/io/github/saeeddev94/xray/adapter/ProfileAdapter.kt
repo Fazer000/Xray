@@ -1,14 +1,14 @@
 package io.github.saeeddev94.xray.adapter
 
-import android.content.res.ColorStateList
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 import io.github.saeeddev94.xray.R
 import io.github.saeeddev94.xray.Settings
 import io.github.saeeddev94.xray.dto.ProfileList
@@ -41,11 +41,20 @@ class ProfileAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, index: Int) {
         val profile = profiles[index]
-        val color =
-            if (settings.selectedProfile == profile.id) R.color.primaryColor else R.color.btnColor
-        holder.activeIndicator.backgroundTintList = ColorStateList.valueOf(
-            ContextCompat.getColor(holder.profileCard.context, color)
-        )
+        val isSelected = settings.selectedProfile == profile.id
+        
+        if (isSelected) {
+            holder.activeIndicator.setBackgroundResource(R.drawable.ic_dot_status_active)
+            holder.profileCard.setCardBackgroundColor(Color.parseColor("#0F291E"))
+            holder.profileCard.strokeColor = Color.parseColor("#10B981")
+            holder.profileCard.strokeWidth = 2
+        } else {
+            holder.activeIndicator.setBackgroundResource(R.drawable.ic_dot_status_inactive)
+            holder.profileCard.setCardBackgroundColor(Color.parseColor("#1E293B"))
+            holder.profileCard.strokeColor = Color.parseColor("#334155")
+            holder.profileCard.strokeWidth = 1
+        }
+
         holder.profileName.text = profile.name
         holder.profileCard.setOnClickListener {
             profileSelect(index, profile)
@@ -80,8 +89,8 @@ class ProfileAdapter(
     }
 
     class ViewHolder(item: View) : RecyclerView.ViewHolder(item) {
-        var activeIndicator: LinearLayout = item.findViewById(R.id.activeIndicator)
-        var profileCard: CardView = item.findViewById(R.id.profileCard)
+        var activeIndicator: View = item.findViewById(R.id.activeIndicator)
+        var profileCard: MaterialCardView = item.findViewById(R.id.profileCard)
         var profileName: TextView = item.findViewById(R.id.profileName)
         var profileEdit: LinearLayout = item.findViewById(R.id.profileEdit)
         var profileDelete: LinearLayout = item.findViewById(R.id.profileDelete)

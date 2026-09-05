@@ -53,7 +53,11 @@ jobs:
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME="${GITHUB_REF#refs/tags/}"
           else
-            TAG_NAME="v1.0.${{ github.run_number }}"
+            BASE_VER=$(grep 'versionName =' app/build.gradle.kts | sed -E 's/.*"([^"]+)".*/\1/' | cut -d'.' -f1,2)
+            if [ -z "$BASE_VER" ]; then
+              BASE_VER="12.6"
+            fi
+            TAG_NAME="v${BASE_VER}.${{ github.run_number }}"
           fi
           echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
           echo "release_name=Release ${TAG_NAME}" >> $GITHUB_OUTPUT
