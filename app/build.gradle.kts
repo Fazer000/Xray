@@ -45,11 +45,13 @@ android {
     }
 
     signingConfigs {
-        create("debugConfig") {
-            storeFile = debugKeystoreFile
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+        if (debugKeystoreFile.exists()) {
+            create("debugConfig") {
+                storeFile = debugKeystoreFile
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
         }
         create("release") {
             storeFile = file("release.jks")
@@ -61,7 +63,11 @@ android {
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("debugConfig")
+            signingConfig = if (debugKeystoreFile.exists()) {
+                signingConfigs.getByName("debugConfig")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         release {
             signingConfig = signingConfigs.getByName("release")
