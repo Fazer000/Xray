@@ -42,10 +42,10 @@ android {
             keyPassword = "android"
         }
         create("release") {
-            storeFile = file("/tmp/xray.jks")
-            storePassword = System.getenv("KS_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            storeFile = file("release.jks")
+            storePassword = "android"
+            keyAlias = "releasekey"
+            keyPassword = "android"
         }
     }
 
