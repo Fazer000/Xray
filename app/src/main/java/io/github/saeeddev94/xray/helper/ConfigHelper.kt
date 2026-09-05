@@ -7,8 +7,10 @@ import io.github.saeeddev94.xray.extensions.putValue
 import io.github.saeeddev94.xray.extensions.remove
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 class ConfigHelper(
     settings: Settings,
@@ -25,9 +27,85 @@ class ConfigHelper(
         process("routing", config.routing, config.routingMode)
 
         ensureLogPath(settings)
+        ensureInbounds(settings)
 
         if (settings.tproxyHotspot || settings.tproxyTethering) {
             sharedInbounds()
+        }
+    }
+
+    private fun ensureInbounds(settings: Settings) {
+        val inbounds = JsonHelper.getArray(base, "inbounds")
+        val hasMatchingInbound = if (settings.transparentProxy) {
+            inbounds.any { element ->
+                val obj = element as? JsonObject
+                obj?.get("protocol")?.jsonPrimitive?.contentOrNull == "dokodemo-door" &&
+                        obj.get("port")?.jsonPrimitive?.contentOrNull == settings.tproxyPort.toString()
+            }
+        } else {
+            inbounds.any { element ->
+                val obj = element as? JsonObject
+                val protocol = obj?.get("protocol")?.jsonPrimitive?.contentOrNull
+                val port = obj?.get("port")?.jsonPrimitive?.contentOrNull
+                (protocol == "socks" || protocol == "http") && port == settings.socksPort
+            }
+        }
+
+        if (!hasMatchingInbound) {
+            val sniffing = buildJsonObject {
+                put("enabled", true)
+                put("destOverride", buildJsonArray {
+                    add(kotlinx.serialization.json.JsonPrimitive("http"))
+                    add(kotlinx.serialization.json.JsonPrimitive("tls"))
+                    add(kotlinx.serialization.json.JsonPrimitive("quic"))
+                })
+            }
+            val requiredInbound = if (settings.transparentProxy) {
+                buildJsonObject {
+                    put("listen", settings.tproxyAddress)
+                    put("port", settings.tproxyPort)
+                    put("protocol", "dokodemo-door")
+                    put("settings", buildJsonObject {
+                        put("network", "tcp,udp")
+                        put("followRedirect", true)
+                    })
+                    put("sniffing", sniffing)
+                    put("streamSettings", buildJsonObject {
+                        put("sockopt", buildJsonObject {
+                            put("tproxy", "tproxy")
+                        })
+                    })
+                    put("tag", "all-in")
+                }
+            } else {
+                buildJsonObject {
+                    put("listen", settings.socksAddress)
+                    put("port", settings.socksPort.toIntOrNull() ?: 10808)
+                    put("protocol", "socks")
+                    put("settings", buildJsonObject {
+                        put("udp", true)
+                        if (settings.socksUsername.isNotBlank() && settings.socksPassword.isNotBlank()) {
+                            put("auth", "password")
+                            put("accounts", buildJsonArray {
+                                add(buildJsonObject {
+                                    put("user", settings.socksUsername)
+                                    put("pass", settings.socksPassword)
+                                })
+                            })
+                        }
+                    })
+                    put("sniffing", sniffing)
+                    put("tag", "socks")
+                }
+            }
+
+            val newInbounds = buildJsonArray {
+                add(requiredInbound)
+                for (inbound in inbounds) {
+                    add(inbound)
+                }
+            }
+            base = base.putValue("inbounds", newInbounds)
         }
     }
 

@@ -171,13 +171,8 @@ class LinksManagerActivity : AppCompatActivity() {
 
             if (proxyOutbounds.size > 1) {
                 // 1. Auto/Balancer profile
-                val autoJson = buildJsonObject {
-                    for ((key, jsonElement) in configuration) {
-                        if (key != "remarks") {
-                            put(key, jsonElement)
-                        }
-                    }
-                }.encodeToString()
+                val autoJsonObj = buildAutoBalancerConfig(proxyOutbounds, nonProxyOutbounds)
+                val autoJson = autoJsonObj.encodeToString()
 
                 val cleanParentRemark = if (parentRemark.length > 30 || parentRemark.contains("http") || parentRemark.contains("fwqfw")) {
                     link.name.ifBlank { "Auto Balancer" }
@@ -360,6 +355,123 @@ class LinksManagerActivity : AppCompatActivity() {
                     put(key, value)
                 }
             }
+        }
+    }
+
+    private fun buildAutoBalancerConfig(
+        proxyOutbounds: List<JsonObject>,
+        nonProxyOutbounds: List<JsonObject>
+    ): JsonObject {
+        val proxyTags = mutableListOf<String>()
+        val newOutbounds = buildJsonArray {
+            proxyOutbounds.forEachIndexed { index, proxyObj ->
+                val tag = "proxy-$index"
+                proxyTags.add(tag)
+                val newProxy = buildJsonObject {
+                    for ((k, v) in proxyObj) {
+                        if (k != "sendThrough" && k != "tag") {
+                            put(k, v)
+                        }
+                    }
+                    put("tag", JsonPrimitive(tag))
+                }
+                add(newProxy)
+            }
+            for (outbound in nonProxyOutbounds) {
+                add(outbound)
+            }
+            if (nonProxyOutbounds.none { it["tag"]?.jsonPrimitive?.contentOrNull == "direct" }) {
+                add(buildJsonObject {
+                    put("protocol", JsonPrimitive("freedom"))
+                    put("tag", JsonPrimitive("direct"))
+                })
+            }
+            if (nonProxyOutbounds.none { it["tag"]?.jsonPrimitive?.contentOrNull == "block" }) {
+                add(buildJsonObject {
+                    put("protocol", JsonPrimitive("blackhole"))
+                    put("tag", JsonPrimitive("block"))
+                })
+            }
+        }
+
+        val observatory = buildJsonObject {
+            put("subjectSelector", buildJsonArray { add(JsonPrimitive("proxy-")) })
+            put("probeUrl", JsonPrimitive(settings.pingAddress.ifBlank { "https://www.google.com" }))
+            put("probeInterval", JsonPrimitive("30s"))
+        }
+
+        val routing = buildJsonObject {
+            put("domainStrategy", JsonPrimitive("IPIfNonMatch"))
+            put("balancers", buildJsonArray {
+                add(buildJsonObject {
+                    put("tag", JsonPrimitive("auto-balancer"))
+                    put("selector", buildJsonArray { add(JsonPrimitive("proxy-")) })
+                    put("strategy", buildJsonObject {
+                        put("type", JsonPrimitive("leastPing"))
+                    })
+                })
+            })
+            put("rules", buildJsonArray {
+                add(buildJsonObject {
+                    put("ip", buildJsonArray {
+                        add(JsonPrimitive(settings.primaryDns))
+                        add(JsonPrimitive(settings.secondaryDns))
+                    })
+                    put("port", JsonPrimitive(53))
+                    put("balancerTag", JsonPrimitive("auto-balancer"))
+                })
+                add(buildJsonObject {
+                    put("ip", buildJsonArray {
+                        add(JsonPrimitive("geoip:private"))
+                    })
+                    put("outboundTag", JsonPrimitive("direct"))
+                })
+                add(buildJsonObject {
+                    put("network", JsonPrimitive("tcp,udp"))
+                    put("balancerTag", JsonPrimitive("auto-balancer"))
+                })
+            })
+        }
+
+        val sniffing = buildJsonObject {
+            put("enabled", JsonPrimitive(true))
+            put("destOverride", buildJsonArray {
+                add(JsonPrimitive("http"))
+                add(JsonPrimitive("tls"))
+                add(JsonPrimitive("quic"))
+            })
+        }
+
+        val inbounds = buildJsonArray {
+            add(buildJsonObject {
+                put("listen", JsonPrimitive(settings.socksAddress))
+                put("port", JsonPrimitive(settings.socksPort.toIntOrNull() ?: 10808))
+                put("protocol", JsonPrimitive("socks"))
+                put("settings", buildJsonObject {
+                    put("udp", JsonPrimitive(true))
+                })
+                put("sniffing", sniffing)
+                put("tag", JsonPrimitive("socks"))
+            })
+        }
+
+        val dns = buildJsonObject {
+            put("servers", buildJsonArray {
+                add(JsonPrimitive(settings.primaryDns))
+                add(JsonPrimitive(settings.secondaryDns))
+            })
+        }
+
+        return buildJsonObject {
+            put("log", buildJsonObject {
+                put("loglevel", JsonPrimitive("warning"))
+                put("error", JsonPrimitive(settings.xrayCoreLogs().absolutePath))
+            })
+            put("dns", dns)
+            put("inbounds", inbounds)
+            put("outbounds", newOutbounds)
+            put("routing", routing)
+            put("observatory", observatory)
         }
     }
 
