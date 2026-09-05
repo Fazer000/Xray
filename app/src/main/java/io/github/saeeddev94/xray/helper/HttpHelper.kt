@@ -1,6 +1,6 @@
 package io.github.saeeddev94.xray.helper
 
-import io.github.saeeddev94.xray.BuildConfig
+import android.os.Build
 import io.github.saeeddev94.xray.Settings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -12,6 +12,8 @@ import java.net.InetSocketAddress
 import java.net.PasswordAuthentication
 import java.net.Proxy
 import java.net.URL
+import java.util.Locale
+import java.util.zip.GZIPInputStream
 
 class HttpHelper(
     val scope: CoroutineScope,
@@ -36,25 +38,39 @@ class HttpHelper(
             connection.requestMethod = method
             connection.connectTimeout = timeout
             connection.readTimeout = timeout
-            userAgent?.let { connection.setRequestProperty("User-Agent", it) }
-            hardwareId?.let { connection.setRequestProperty("x-hwid", it) }
-            connection.setRequestProperty("Connection", "close")
+
+            val ua = if (!userAgent.isNullOrBlank()) userAgent else "XrayFlow"
+            val hwid = if (!hardwareId.isNullOrBlank()) hardwareId else "74jf74nf8f4jr5je"
+            val locale = runCatching { Locale.getDefault().language.ifBlank { "ru" } }.getOrDefault("ru")
+            val model = Build.MODEL ?: ""
+            val verOs = Build.VERSION.RELEASE ?: ""
+
+            connection.setRequestProperty("User-Agent", ua)
+            connection.setRequestProperty("X-Device-Os", "Android")
+            connection.setRequestProperty("X-Device-Locale", locale)
+            connection.setRequestProperty("X-Device-Model", model)
+            connection.setRequestProperty("X-Ver-Os", verOs)
+            connection.setRequestProperty("X-Hwid", hwid)
+            connection.setRequestProperty("Accept-Encoding", "gzip")
+            connection.setRequestProperty("Connection", "keep-alive")
             return connection
         }
 
         suspend fun get(link: String, userAgent: String? = null, hardwareId: String? = null): String {
             return withContext(Dispatchers.IO) {
-                val defaultUserAgent = "${BuildConfig.APPLICATION_ID}/${BuildConfig.VERSION_NAME}"
                 val connection = getConnection(
                     link,
-                    userAgent = userAgent ?: defaultUserAgent,
+                    userAgent = userAgent,
                     hardwareId = hardwareId,
                 )
                 var responseCode = 0
                 val responseBody = try {
                     connection.connect()
                     responseCode = connection.responseCode
-                    connection.inputStream.bufferedReader().use { it.readText() }
+                    val rawStream = connection.inputStream
+                    val isGzip = "gzip".equals(connection.contentEncoding, ignoreCase = true)
+                    val stream = if (isGzip) GZIPInputStream(rawStream) else rawStream
+                    stream.bufferedReader().use { it.readText() }
                 } catch (_: Exception) {
                     null
                 } finally {

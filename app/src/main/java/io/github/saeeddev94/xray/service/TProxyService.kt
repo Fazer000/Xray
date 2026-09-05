@@ -45,7 +45,11 @@ class TProxyService : VpnService() {
 
     companion object {
         init {
-            System.loadLibrary("hev-socks5-tunnel")
+            try {
+                System.loadLibrary("hev-socks5-tunnel")
+            } catch (e: Throwable) {
+                Log.e("TProxyService", "Could not load hev-socks5-tunnel library: ${e.message}")
+            }
         }
 
         const val PKG_NAME = BuildConfig.APPLICATION_ID
@@ -306,7 +310,11 @@ class TProxyService : VpnService() {
             )
 
             /** Start tun2socks */
-            TProxyStartService(settings.tun2socksConfig().absolutePath, tunDevice!!.fd)
+            runCatching {
+                TProxyStartService(settings.tun2socksConfig().absolutePath, tunDevice!!.fd)
+            }.onFailure {
+                Log.e("TProxyService", "TProxyStartService failed: ${it.message}")
+            }
         }
 
         /** Service Notification */
@@ -336,7 +344,7 @@ class TProxyService : VpnService() {
         if (settings.transparentProxy) {
             transparentProxyHelper.disableProxy()
         } else {
-            TProxyStopService()
+            runCatching { TProxyStopService() }
             runCatching { tunDevice?.close() }
             tunDevice = null
             isRunning = false

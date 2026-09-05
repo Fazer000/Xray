@@ -34,29 +34,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 
-    externalNativeBuild {
-        ndkVersion = "29.0.14206865"
-        ndkBuild {
-            path = file("src/main/jni/Android.mk")
-        }
-    }
-
-    splits {
-        abi {
-            isEnable = true
-            isUniversalApk = false
-            reset()
-            //noinspection ChromeOsAbiSupport
-            include(*abiTarget.split(",").toTypedArray())
-        }
-    }
-
-    dependenciesInfo {
-        includeInApk = false
-        includeInBundle = false
-    }
-
     signingConfigs {
+        create("debugConfig") {
+            storeFile = file("${rootDir}/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         create("release") {
             storeFile = file("/tmp/xray.jks")
             storePassword = System.getenv("KS_PASSWORD")
@@ -66,6 +50,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debugConfig")
+        }
         release {
             signingConfig = signingConfigs.getByName("release")
         }
