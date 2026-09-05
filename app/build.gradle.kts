@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.parcelize)
@@ -34,9 +36,17 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 
+    val debugKeystoreFile = file("${rootDir}/debug.keystore")
+    val debugKeystoreBase64File = file("${rootDir}/debug.keystore.base64")
+    if (!debugKeystoreFile.exists() && debugKeystoreBase64File.exists()) {
+        val base64Text = debugKeystoreBase64File.readText().replace("\\s".toRegex(), "")
+        val decoded = Base64.getDecoder().decode(base64Text)
+        debugKeystoreFile.writeBytes(decoded)
+    }
+
     signingConfigs {
         create("debugConfig") {
-            storeFile = file("${rootDir}/debug.keystore")
+            storeFile = debugKeystoreFile
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
