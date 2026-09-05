@@ -48,10 +48,13 @@ jobs:
           go mod init XrayCore || true
           go mod edit -replace github.com/xtls/xray-core=./Xray-core || true
           go mod edit -replace github.com/xtls/libxray=./libXray || true
+          go get golang.org/x/mobile/cmd/gobind || true
+          go get -tool golang.org/x/mobile/cmd/gobind || true
+          go get golang.org/x/mobile || true
           go mod tidy || true
           go install golang.org/x/mobile/cmd/gomobile@latest
           gomobile init
-          gomobile bind -o ../app/libs/XrayCore.aar -androidapi 26 -target android -ldflags="-checklinkname=0 -buildid=" -trimpath || true
+          gomobile bind -v -o ../app/libs/XrayCore.aar -androidapi 26 -target android -ldflags="-checklinkname=0 -buildid=" -trimpath
           cd ..
           ls -la app/libs/
 

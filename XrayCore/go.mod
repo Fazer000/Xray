@@ -9,6 +9,7 @@ replace github.com/xtls/libxray => ./libXray
 require (
 	github.com/xtls/libxray v0.0.0-00010101000000-000000000000
 	github.com/xtls/xray-core v1.260327.1-0.20260728075948-5ca6f4b7d4dc
+	golang.org/x/mobile v0.0.0-20240506185415-9bf2ced13842
 )
 
 require (

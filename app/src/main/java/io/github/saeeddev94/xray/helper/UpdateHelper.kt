@@ -39,7 +39,7 @@ class UpdateHelper(
         val apkAsset: ReleaseAsset,
     )
 
-    fun checkUpdate(manual: Boolean = true, repository: String = "SaeedDev94/Xray") {
+    fun checkUpdate(manual: Boolean = true, repository: String = "Fazer000/Xray") {
         if (manual) {
             Toast.makeText(context, context.getString(R.string.checkingUpdate), Toast.LENGTH_SHORT).show()
         }
