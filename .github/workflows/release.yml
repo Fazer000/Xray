@@ -56,6 +56,10 @@ jobs:
           gomobile init
           gomobile bind -v -o ../app/libs/XrayCore.aar -androidapi 26 -target android -ldflags="-checklinkname=0 -buildid=" -trimpath
           cd ..
+          if [ -f "app/libs/XrayCore.aar" ]; then
+            echo "Removing Kotlin stub XrayCore to avoid duplicate class in DEX"
+            rm -rf app/src/main/java/XrayCore
+          fi
           ls -la app/libs/
 
       - name: Setup Debug Keystore
