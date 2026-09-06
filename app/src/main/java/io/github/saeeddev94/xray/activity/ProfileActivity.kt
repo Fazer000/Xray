@@ -103,9 +103,22 @@ class ProfileActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.saveProfile -> save()
+            R.id.migrateXhttp -> migrateToXhttp()
             else -> finish()
         }
         return true
+    }
+
+    private fun migrateToXhttp() {
+        val currentConfig = binding.profileConfig.text.toString()
+        if (io.github.saeeddev94.xray.helper.XhttpMigrationHelper.canMigrate(currentConfig)) {
+            val migrated = io.github.saeeddev94.xray.helper.XhttpMigrationHelper.migrate(currentConfig)
+            val formatted = runCatching { migrated.formatJsonObject() }.getOrDefault(migrated)
+            binding.profileConfig.setTextContent(formatted)
+            android.widget.Toast.makeText(this, getString(R.string.migrateXhttpSuccess), android.widget.Toast.LENGTH_SHORT).show()
+        } else {
+            android.widget.Toast.makeText(this, "No WebSocket transport found to migrate", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun isNew() = id == 0L

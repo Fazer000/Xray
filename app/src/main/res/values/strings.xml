@@ -35,6 +35,8 @@
     <string name="closeLink">Close</string>
     <string name="newProfile">New Profile</string>
     <string name="editProfile">Edit Profile</string>
+    <string name="migrateXhttp">Migrate WS to XHTTP</string>
+    <string name="migrateXhttpSuccess">Converted WebSocket transport to XHTTP (H2/H3)</string>
     <string name="profileName">Name</string>
     <string name="profileConfig">Config</string>
     <string name="editIcon">Edit Icon</string>
