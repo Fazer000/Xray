@@ -66,8 +66,7 @@ class UpdateHelper(
                             apkAssets.add(ReleaseAsset(name, downloadUrl, size))
                         }
                     }
-                    apkAsset = apkAssets.firstOrNull { it.name.lowercase().contains("release") }
-                        ?: apkAssets.firstOrNull()
+                    apkAsset = selectBestApk(apkAssets)
                 }
 
                 val isNewer = isNewerVersion(tagName, BuildConfig.VERSION_NAME)
@@ -215,6 +214,36 @@ class UpdateHelper(
                 if (latestNum < currentNum) return false
             }
             return false
+        }
+
+        fun selectBestApk(apkAssets: List<ReleaseAsset>): ReleaseAsset? {
+            if (apkAssets.isEmpty()) return null
+
+            val supportedAbis = Build.SUPPORTED_ABIS ?: emptyArray()
+
+            for (abi in supportedAbis) {
+                val normalizedAbi = abi.lowercase()
+                val matched = apkAssets.firstOrNull { asset ->
+                    val name = asset.name.lowercase()
+                    when (normalizedAbi) {
+                        "arm64-v8a", "arm64" -> name.contains("arm64-v8a") || name.contains("arm64_v8a") || name.contains("arm64")
+                        "armeabi-v7a", "armv7a", "armeabi" -> (name.contains("armeabi-v7a") || name.contains("armeabi_v7a") || name.contains("armv7") || name.contains("armeabi")) && !name.contains("arm64")
+                        "x86_64" -> name.contains("x86_64") || name.contains("x86-64")
+                        "x86" -> (name.contains("x86") || name.contains("i686")) && !name.contains("x86_64") && !name.contains("x86-64")
+                        else -> name.contains(normalizedAbi)
+                    }
+                }
+                if (matched != null) return matched
+            }
+
+            val universalMatch = apkAssets.firstOrNull { asset ->
+                val name = asset.name.lowercase()
+                name.contains("universal") || name.contains("all")
+            }
+            if (universalMatch != null) return universalMatch
+
+            return apkAssets.firstOrNull { it.name.lowercase().contains("release") }
+                ?: apkAssets.firstOrNull()
         }
     }
 }

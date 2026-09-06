@@ -7,8 +7,8 @@ plugins {
     alias(libs.plugins.google.ksp)
 }
 
-val abiId: String = project.property("abiId").toString()
-val abiTarget: String = project.property("abiTarget").toString()
+val abiId: String = if (project.hasProperty("abiId")) project.property("abiId").toString() else "0"
+val abiTarget: String = if (project.hasProperty("abiTarget")) project.property("abiTarget").toString() else "armeabi-v7a,arm64-v8a,x86,x86_64"
 
 fun calcVersionCode(): Int = file("versionCode.txt").readText().trim().let { versionCode ->
     versionCode.toInt() + abiId.toInt()
@@ -24,6 +24,16 @@ android {
         targetSdk = 37
         versionCode = calcVersionCode()
         versionName = "1.0.4"
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            val targetAbis = abiTarget.split(",").map { it.trim() }.filter { it.isNotBlank() }
+            include(*targetAbis.toTypedArray())
+            isUniversalApk = true
+        }
     }
 
     buildFeatures {
@@ -71,6 +81,28 @@ android {
         }
         release {
             signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    val abiCodes = mapOf(
+        "armeabi-v7a" to 1,
+        "arm64-v8a" to 2,
+        "x86" to 3,
+        "x86_64" to 4
+    )
+
+    androidComponents {
+        onVariants { variant ->
+            val baseVersionCode = file("versionCode.txt").readText().trim().toInt()
+            variant.outputs.forEach { output ->
+                val abiFilter = output.filters.find { 
+                    it.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI 
+                }
+                if (abiFilter != null) {
+                    val abiCode = abiCodes[abiFilter.identifier] ?: 0
+                    output.versionCode.set(baseVersionCode + abiCode)
+                }
+            }
         }
     }
 }

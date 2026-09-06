@@ -28,9 +28,38 @@ class ConfigHelper(
 
         ensureLogPath(settings)
         ensureInbounds(settings)
+        sanitizeConfig(settings)
 
         if (settings.tproxyHotspot || settings.tproxyTethering) {
             sharedInbounds()
+        }
+    }
+
+    private fun sanitizeConfig(settings: Settings) {
+        val outbounds = JsonHelper.getArray(base, "outbounds")
+        val sanitizedOutbounds = buildJsonArray {
+            for (element in outbounds) {
+                if (element is JsonObject) {
+                    add(JsonHelper.sanitizeOutbound(element))
+                } else {
+                    add(element)
+                }
+            }
+        }
+        base = base.putValue("outbounds", sanitizedOutbounds)
+
+        val dnsObj = JsonHelper.getObject(base, "dns")
+        if (!dnsObj.containsKey("queryStrategy")) {
+            val dnsMap = dnsObj.toMutableMap()
+            dnsMap["queryStrategy"] = kotlinx.serialization.json.JsonPrimitive(if (settings.enableIpV6) "UseIP" else "UseIPv4")
+            base = base.putValue("dns", JsonObject(dnsMap))
+        }
+
+        val routingObj = JsonHelper.getObject(base, "routing")
+        if (!routingObj.containsKey("domainStrategy")) {
+            val routingMap = routingObj.toMutableMap()
+            routingMap["domainStrategy"] = kotlinx.serialization.json.JsonPrimitive(if (settings.enableIpV6) "IPIfNonMatch" else "UseIPv4")
+            base = base.putValue("routing", JsonObject(routingMap))
         }
     }
 

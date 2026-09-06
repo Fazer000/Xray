@@ -2,8 +2,11 @@ package io.github.saeeddev94.xray.helper
 
 import io.github.saeeddev94.xray.extensions.decodeToJsonArray
 import io.github.saeeddev94.xray.extensions.decodeToJsonObject
+import io.github.saeeddev94.xray.extensions.putValue
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -23,6 +26,47 @@ object JsonHelper {
         value: JsonObject,
         key: String,
     ): JsonArray = value[key] as? JsonArray ?: JsonArray(emptyList())
+
+    fun sanitizeStreamSettings(streamSettings: JsonObject): JsonObject {
+        var modifiedStreamSettings = streamSettings
+        val transportKeys = listOf("wsSettings", "httpSettings", "grpcSettings", "tcpSettings", "quicSettings")
+
+        for (transportKey in transportKeys) {
+            val transportObj = streamSettings[transportKey] as? JsonObject ?: continue
+            val headersObj = transportObj["headers"] as? JsonObject ?: continue
+
+            var hostFromHeader: String? = null
+            val newHeadersMap = mutableMapOf<String, JsonElement>()
+
+            for ((hKey, hVal) in headersObj) {
+                if (hKey.equals("host", ignoreCase = true) && hostFromHeader == null) {
+                    hostFromHeader = hVal.jsonPrimitive.contentOrNull
+                } else {
+                    newHeadersMap[hKey] = hVal
+                }
+            }
+
+            if (!hostFromHeader.isNullOrBlank()) {
+                val newTransportMap = mutableMapOf<String, JsonElement>()
+                transportObj.forEach { (k, v) -> newTransportMap[k] = v }
+
+                val existingHost = transportObj["host"]?.jsonPrimitive?.contentOrNull
+                if (existingHost.isNullOrBlank()) {
+                    newTransportMap["host"] = JsonPrimitive(hostFromHeader)
+                }
+
+                newTransportMap["headers"] = JsonObject(newHeadersMap)
+                modifiedStreamSettings = modifiedStreamSettings.putValue(transportKey, JsonObject(newTransportMap))
+            }
+        }
+        return modifiedStreamSettings
+    }
+
+    fun sanitizeOutbound(outbound: JsonObject): JsonObject {
+        val streamSettings = outbound["streamSettings"] as? JsonObject ?: return outbound
+        val sanitizedStream = sanitizeStreamSettings(streamSettings)
+        return outbound.putValue("streamSettings", sanitizedStream)
+    }
 
     fun mergeObjects(
         obj1: JsonObject,

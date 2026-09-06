@@ -225,6 +225,7 @@ class LinkHelper(
                     add(JsonPrimitive(settings.secondaryDns))
                 }
             )
+            put("queryStrategy", if (settings.enableIpV6) "UseIP" else "UseIPv4")
         }
     }
 
@@ -317,8 +318,10 @@ class LinkHelper(
             ?.jsonPrimitive
             ?.contentOrNull ?: REMARK_DEFAULT
 
+        val sanitizedTarget = JsonHelper.sanitizeOutbound(targetOutbound)
+
         val proxy = buildJsonObject {
-            for ((key, value) in targetOutbound) {
+            for ((key, value) in sanitizedTarget) {
                 if (key != "sendThrough" && key != "tag") {
                     put(key, value)
                 }
@@ -386,7 +389,7 @@ class LinkHelper(
         }
 
         return buildJsonObject {
-            put("domainStrategy", "IPIfNonMatch")
+            put("domainStrategy", if (settings.enableIpV6) "IPIfNonMatch" else "UseIPv4")
             put(
                 "rules",
                 buildJsonArray {
