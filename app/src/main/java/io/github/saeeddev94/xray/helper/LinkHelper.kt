@@ -61,7 +61,7 @@ class LinkHelper(
             val protocol = outbound["protocol"]?.jsonPrimitive?.contentOrNull?.lowercase() ?: ""
             val tag = outbound["tag"]?.jsonPrimitive?.contentOrNull?.lowercase() ?: ""
             if (protocol in listOf("freedom", "blackhole", "dns", "v2rayou")) return false
-            if (tag in listOf("direct", "block", "dns-out", "direct-fragment")) return false
+            if (tag in listOf("direct", "block", "dns-out", "direct-fragment", "fragment")) return false
             return protocol.isNotEmpty()
         }
 
@@ -222,8 +222,17 @@ class LinkHelper(
             put(
                 "servers",
                 buildJsonArray {
-                    add(JsonPrimitive(settings.primaryDns))
-                    add(JsonPrimitive(settings.secondaryDns))
+                    add(JsonPrimitive("1.1.1.1"))
+                    add(JsonPrimitive("8.8.8.8"))
+                    add(JsonPrimitive("77.88.8.8"))
+                    add(buildJsonObject {
+                        put("address", "https://1.1.1.1/dns-query")
+                        put("skipFallback", true)
+                    })
+                    add(buildJsonObject {
+                        put("address", "https://8.8.8.8/dns-query")
+                        put("skipFallback", true)
+                    })
                 }
             )
             put("queryStrategy", if (settings.enableIpV6) "UseIP" else "UseIPv4")
@@ -346,37 +355,32 @@ class LinkHelper(
             put("tag", "dns-out")
         }
 
+        val fragment = buildJsonObject {
+            put("protocol", "freedom")
+            put("tag", "fragment")
+            put("settings", buildJsonObject {
+                put("domainStrategy", "AsIs")
+                put("fragment", buildJsonObject {
+                    put("packets", "tlshello")
+                    put("length", "100-200")
+                    put("interval", "10-20")
+                })
+            })
+        }
+
         return buildJsonArray {
             add(proxy)
             add(direct)
             add(block)
-            if (settings.transparentProxy) add(dns)
+            add(dns)
+            add(fragment)
         }
     }
 
     private fun routing(): JsonObject {
         val proxyDns = buildJsonObject {
-            if (settings.transparentProxy) {
-                put("network", "udp")
-                put("port", 53)
-                put(
-                    "inboundTag",
-                    buildJsonArray {
-                        add(JsonPrimitive("all-in"))
-                    }
-                )
-                put("outboundTag", "dns-out")
-            } else {
-                put(
-                    "ip",
-                    buildJsonArray {
-                        add(JsonPrimitive(settings.primaryDns))
-                        add(JsonPrimitive(settings.secondaryDns))
-                    }
-                )
-                put("port", 53)
-                put("outboundTag", "proxy")
-            }
+            put("port", 53)
+            put("outboundTag", "dns-out")
         }
 
         val directPrivate = buildJsonObject {

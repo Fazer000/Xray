@@ -126,8 +126,11 @@ class Settings(val context: Context) {
         get() = sharedPreferences.getString("tunName", "tun0")!!
         set(value) = sharedPreferences.edit { putString("tunName", value) }
     var tunMtu: Int
-        get() = sharedPreferences.getInt("tunMtu", 8500)
-        set(value) = sharedPreferences.edit { putInt("tunMtu", value) }
+        get() {
+            val v = sharedPreferences.getInt("tunMtu", 1500)
+            return if (v > 1500 || v <= 0) 1500 else v
+        }
+        set(value) = sharedPreferences.edit { putInt("tunMtu", if (value > 1500 || value <= 0) 1500 else value) }
     var tunAddress: String
         get() = sharedPreferences.getString("tunAddress", "10.10.10.10")!!
         set(value) = sharedPreferences.edit { putString("tunAddress", value) }

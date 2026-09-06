@@ -59,9 +59,17 @@ object JsonHelper {
 
     fun sanitizeOutbound(outbound: JsonObject): JsonObject {
         var result = outbound
-        val streamSettings = outbound["streamSettings"] as? JsonObject
-        if (streamSettings != null) {
-            val sanitizedStream = sanitizeStreamSettings(streamSettings)
+        val streamSettings = (outbound["streamSettings"] as? JsonObject) ?: JsonObject(emptyMap())
+        val sanitizedStream = sanitizeStreamSettings(streamSettings)
+
+        if (LinkHelper.isProxyOutbound(outbound)) {
+            val sockopt = (sanitizedStream["sockopt"] as? JsonObject)?.toMutableMap() ?: mutableMapOf()
+            if (!sockopt.containsKey("dialerProxy")) {
+                sockopt["dialerProxy"] = JsonPrimitive("fragment")
+            }
+            val newStream = sanitizedStream.putValue("sockopt", JsonObject(sockopt))
+            result = result.putValue("streamSettings", newStream)
+        } else {
             result = result.putValue("streamSettings", sanitizedStream)
         }
 

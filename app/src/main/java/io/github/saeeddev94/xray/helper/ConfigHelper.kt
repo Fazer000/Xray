@@ -53,6 +53,9 @@ class ConfigHelper(
         val outboundsList = sanitizedOutbounds.toMutableList()
         val hasDirect = outboundsList.any { (it as? JsonObject)?.get("tag")?.jsonPrimitive?.contentOrNull == "direct" }
         val hasBlock = outboundsList.any { (it as? JsonObject)?.get("tag")?.jsonPrimitive?.contentOrNull == "block" }
+        val hasDnsOut = outboundsList.any { (it as? JsonObject)?.get("tag")?.jsonPrimitive?.contentOrNull == "dns-out" }
+        val hasFragment = outboundsList.any { (it as? JsonObject)?.get("tag")?.jsonPrimitive?.contentOrNull == "fragment" }
+
         if (!hasDirect) {
             outboundsList.add(buildJsonObject {
                 put("protocol", "freedom")
@@ -63,6 +66,26 @@ class ConfigHelper(
             outboundsList.add(buildJsonObject {
                 put("protocol", "blackhole")
                 put("tag", "block")
+            })
+        }
+        if (!hasDnsOut) {
+            outboundsList.add(buildJsonObject {
+                put("protocol", "dns")
+                put("tag", "dns-out")
+            })
+        }
+        if (!hasFragment) {
+            outboundsList.add(buildJsonObject {
+                put("protocol", "freedom")
+                put("tag", "fragment")
+                put("settings", buildJsonObject {
+                    put("domainStrategy", "AsIs")
+                    put("fragment", buildJsonObject {
+                        put("packets", "tlshello")
+                        put("length", "100-200")
+                        put("interval", "10-20")
+                    })
+                })
             })
         }
         base = base.putValue("outbounds", JsonArray(outboundsList))
@@ -205,14 +228,31 @@ class ConfigHelper(
                     }
                 }
             }
+            val rulesList = sanitizedRules.toMutableList()
+            val hasDnsRule = rulesList.any { rule ->
+                val rObj = rule as? JsonObject
+                rObj?.get("port")?.jsonPrimitive?.contentOrNull == "53" || rObj?.get("outboundTag")?.jsonPrimitive?.contentOrNull == "dns-out"
+            }
+            if (!hasDnsRule) {
+                rulesList.add(0, buildJsonObject {
+                    put("port", 53)
+                    put("outboundTag", "dns-out")
+                })
+            }
             val routingMap = routingObj.toMutableMap()
-            routingMap["rules"] = sanitizedRules
+            routingMap["rules"] = JsonArray(rulesList)
             if (!routingMap.containsKey("domainStrategy")) {
                 routingMap["domainStrategy"] = JsonPrimitive("IPIfNonMatch")
             }
             base = base.putValue("routing", JsonObject(routingMap))
         } else {
             val routingMap = routingObj.toMutableMap()
+            routingMap["rules"] = buildJsonArray {
+                add(buildJsonObject {
+                    put("port", 53)
+                    put("outboundTag", "dns-out")
+                })
+            }
             if (!routingMap.containsKey("domainStrategy")) {
                 routingMap["domainStrategy"] = JsonPrimitive("IPIfNonMatch")
             }
