@@ -65,45 +65,132 @@ class LinkHelper(
             return protocol.isNotEmpty()
         }
 
-        fun addFlagEmoji(name: String): String {
-            val lower = name.lowercase()
-            val flagMap = listOf(
-                listOf("germany", "deutschland", "frankfurt", "berlin", "münchen", "munich", "[de]", "(de)", " de ", "-de-", ".de") to "🇩🇪",
-                listOf("usa", "united states", "america", "new york", "los angeles", "miami", "chicago", "dallas", "[us]", "(us)", " us ", "-us-", ".us") to "🇺🇸",
-                listOf("france", "paris", "[fr]", "(fr)", " fr ", "-fr-", ".fr") to "🇫🇷",
-                listOf("finland", "helsinki", "[fi]", "(fi)", " fi ", "-fi-", ".fi") to "🇫🇮",
-                listOf("turkey", "türkiye", "istanbul", "ankara", "[tr]", "(tr)", " tr ", "-tr-", ".tr") to "🇹🇷",
-                listOf("netherlands", "holland", "amsterdam", "[nl]", "(nl)", " nl ", "-nl-", ".nl") to "🇳🇱",
-                listOf("russia", "moscow", "spb", "petersburg", "[ru]", "(ru)", " ru ", "-ru-", ".ru") to "🇷🇺",
-                listOf("spain", "madrid", "barcelona", "[es]", "(es)", " es ", "-es-", ".es") to "🇪🇸",
-                listOf("united kingdom", "great britain", "london", "uk", "[gb]", "(gb)", " gb ", "-gb-", ".gb") to "🇬🇧",
-                listOf("singapore", "[sg]", "(sg)", " sg ", "-sg-", ".sg") to "🇸🇬",
-                listOf("japan", "tokyo", "[jp]", "(jp)", " jp ", "-jp-", ".jp") to "🇯🇵",
-                listOf("sweden", "stockholm", "[se]", "(se)", " se ", "-se-", ".se") to "🇸🇪",
-                listOf("poland", "warsaw", "[pl]", "(pl)", " pl ", "-pl-", ".pl") to "🇵🇱",
-                listOf("canada", "toronto", "montreal", "[ca]", "(ca)", " ca ", "-ca-", ".ca") to "🇨🇦",
-                listOf("ukraine", "kyiv", "kiev", "[ua]", "(ua)", " ua ", "-ua-", ".ua") to "🇺🇦",
-                listOf("kazakhstan", "almaty", "astana", "[kz]", "(kz)", " kz ", "-kz-", ".kz") to "🇰🇿",
-                listOf("georgia", "tbilisi", "[ge]", "(ge)", " ge ", "-ge-", ".ge") to "🇬🇪",
-                listOf("armenia", "yerevan", "[am]", "(am)", " am ", "-am-", ".am") to "🇦🇲",
-                listOf("italy", "rome", "milan", "[it]", "(it)", " it ", "-it-", ".it") to "🇮🇹",
-                listOf("south korea", "korea", "seoul", "[kr]", "(kr)", " kr ", "-kr-", ".kr") to "🇰🇷",
-                listOf("hong kong", "[hk]", "(hk)", " hk ", "-hk-", ".hk") to "🇭🇰"
-            )
+        fun cleanServerName(rawName: String): String {
+            if (rawName.isBlank()) return "🌐 Сервер"
 
-            for ((keywords, flag) in flagMap) {
-                if (keywords.any { lower.contains(it) }) {
-                    if (!name.contains(flag)) {
-                        return "$flag $name"
-                    }
-                    return name
+            var name = runCatching {
+                java.net.URLDecoder.decode(rawName, "UTF-8")
+            }.getOrNull() ?: rawName
+
+            name = name.trim()
+
+            val prefixesToRemove = listOf(
+                "vless://", "vmess://", "trojan://", "ss://", "shadowsocks://",
+                "[VLESS]", "[VMESS]", "[TROJAN]", "[SS]", "[CF]", "[CDN]", "[DIRECT]"
+            )
+            for (prefix in prefixesToRemove) {
+                if (name.startsWith(prefix, ignoreCase = true)) {
+                    name = name.substring(prefix.length).trim()
                 }
             }
 
-            if (name.startsWith("⚡") || name.startsWith("🌐") || name.startsWith("🛡️") || name.startsWith("🚀")) {
-                return name
+            val techGarbagePatterns = listOf(
+                Regex("""(?i)\s*\|\s*(vless|vmess|trojan|ss|shadowsocks|ws|reality|xhttp|grpc|h2|tcp|udp).*$"""),
+                Regex("""(?i)\s*-\s*🌐\s*mobile-cf-\d+.*$"""),
+                Regex("""(?i)\s*-\s*mobile-cf-\d+.*$"""),
+                Regex("""(?i)\s*xray-\w+-.*$"""),
+                Regex("""(?i)\s*node-\d+.*$"""),
+                Regex("""\s*\[(fast|low|high|premium|cf|cdn)\]""")
+            )
+            for (pattern in techGarbagePatterns) {
+                name = pattern.replace(name, "").trim()
             }
-            return "🌐 $name"
+
+            var existingFlag = ""
+            val flagRegex = Regex("""[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]""")
+            val flagMatch = flagRegex.find(name)
+            if (flagMatch != null) {
+                existingFlag = flagMatch.value
+                name = name.replace(flagRegex, "").trim()
+            }
+
+            data class CountryInfo(val flag: String, val nameRu: String, val keywords: List<String>)
+            val countryTable = listOf(
+                CountryInfo("🇩🇪", "Германия", listOf("germany", "deutschland", "frankfurt", "berlin", "munich", "münchen", "de")),
+                CountryInfo("🇺🇸", "США", listOf("usa", "united states", "america", "new york", "los angeles", "miami", "chicago", "dallas", "us")),
+                CountryInfo("🇫🇮", "Финляндия", listOf("finland", "helsinki", "fi")),
+                CountryInfo("🇳🇱", "Нидерланды", listOf("netherlands", "holland", "amsterdam", "nl")),
+                CountryInfo("🇹🇷", "Турция", listOf("turkey", "türkiye", "istanbul", "ankara", "tr")),
+                CountryInfo("🇫🇷", "Франция", listOf("france", "paris", "fr")),
+                CountryInfo("🇬🇧", "Великобритания", listOf("united kingdom", "great britain", "london", "uk", "gb")),
+                CountryInfo("🇷🇺", "Россия", listOf("russia", "moscow", "spb", "petersburg", "ru")),
+                CountryInfo("🇪🇸", "Испания", listOf("spain", "madrid", "barcelona", "es")),
+                CountryInfo("🇮🇹", "Италия", listOf("italy", "rome", "milan", "it")),
+                CountryInfo("🇸🇬", "Сингапур", listOf("singapore", "sg")),
+                CountryInfo("🇯🇵", "Япония", listOf("japan", "tokyo", "jp")),
+                CountryInfo("🇸🇪", "Швеция", listOf("sweden", "stockholm", "se")),
+                CountryInfo("🇵🇱", "Польша", listOf("poland", "warsaw", "pl")),
+                CountryInfo("🇨🇦", "Канада", listOf("canada", "toronto", "montreal", "ca")),
+                CountryInfo("🇺🇦", "Украина", listOf("ukraine", "kyiv", "kiev", "ua")),
+                CountryInfo("🇰🇿", "Казахстан", listOf("kazakhstan", "almaty", "astana", "kz")),
+                CountryInfo("🇬🇪", "Грузия", listOf("georgia", "tbilisi", "ge")),
+                CountryInfo("🇦🇲", "Армения", listOf("armenia", "yerevan", "am")),
+                CountryInfo("🇦🇪", "ОАЭ", listOf("uae", "dubai", "ae")),
+                CountryInfo("🇨🇭", "Швейцария", listOf("switzerland", "zurich", "ch")),
+                CountryInfo("🇦Т", "Австрия", listOf("austria", "vienna", "at")),
+                CountryInfo("🇨🇿", "Чехия", listOf("czech", "prague", "cz")),
+                CountryInfo("🇭🇰", "Гонконг", listOf("hong kong", "hongkong", "hk")),
+                CountryInfo("🇰🇷", "Южная Корея", listOf("south korea", "korea", "seoul", "kr")),
+                CountryInfo("🇦🇺", "Австралия", listOf("australia", "sydney", "au"))
+            )
+
+            var matchedCountry: CountryInfo? = null
+            val lowerName = name.lowercase()
+
+            for (country in countryTable) {
+                if (existingFlag == country.flag) {
+                    matchedCountry = country
+                    break
+                }
+                val found = country.keywords.any { kw ->
+                    when {
+                        kw.length <= 3 -> {
+                            lowerName.contains("[${kw}]") || lowerName.contains("(${kw})") ||
+                            lowerName.contains(" ${kw} ") || lowerName.startsWith("${kw}-") ||
+                            lowerName.startsWith("${kw}_") || lowerName.contains("-${kw}-") ||
+                            lowerName.contains("_${kw}_")
+                        }
+                        else -> lowerName.contains(kw)
+                    }
+                }
+                if (found) {
+                    matchedCountry = country
+                    break
+                }
+            }
+
+            val finalFlag = existingFlag.ifEmpty { matchedCountry?.flag ?: "🌐" }
+
+            var label = name
+            matchedCountry?.let { c ->
+                val toRemove = (c.keywords + listOf(c.nameRu.lowercase(), "germany", "russia", "turkey", "finland", "netherlands", "usa", "france")).distinct()
+                for (kw in toRemove) {
+                    if (kw.length > 3) {
+                        label = Regex("(?i)\\b" + Regex.escape(kw) + "\\b").replace(label, "").trim()
+                    }
+                }
+            }
+
+            label = label.replace(Regex("""^[-\s_|\.:;()\[\]#]+"""), "")
+                         .replace(Regex("""[-\s_|\.:;()\[\]#]+$"""), "")
+                         .trim()
+
+            if (label.isBlank() || label.length > 45 || label.startsWith("http", ignoreCase = true)) {
+                val countryName = matchedCountry?.nameRu ?: ""
+                return if (countryName.isNotBlank()) "$finalFlag $countryName" else "$finalFlag Сервер"
+            }
+
+            val countryName = matchedCountry?.nameRu ?: ""
+            return when {
+                countryName.isNotBlank() && !label.contains(countryName, ignoreCase = true) -> {
+                    "$finalFlag $countryName · $label"
+                }
+                else -> "$finalFlag $label"
+            }
+        }
+
+        fun addFlagEmoji(name: String): String {
+            return cleanServerName(name)
         }
 
         fun generateServerName(outbound: JsonObject, parentRemark: String = ""): String {

@@ -2,14 +2,14 @@ package io.github.saeeddev94.xray.activity
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -31,20 +31,31 @@ class AppsRoutingActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAppsRoutingBinding
     private lateinit var appsList: RecyclerView
     private lateinit var appsRoutingAdapter: AppsRoutingAdapter
-    private lateinit var apps: ArrayList<AppList>
-    private lateinit var filtered: MutableList<AppList>
-    private lateinit var appsRouting: MutableSet<String>
-    private lateinit var menu: Menu
+    private var apps: ArrayList<AppList> = arrayListOf()
+    private var filtered: MutableList<AppList> = mutableListOf()
+    private var appsRouting: MutableSet<String> = mutableSetOf()
     private var appsRoutingMode: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        title = ""
         binding = ActivityAppsRoutingBinding.inflate(layoutInflater)
         appsRoutingMode = settings.appsRoutingMode
         setContentView(binding.root)
-        setSupportActionBar(binding.toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        binding.toolbar.setNavigationOnClickListener { finish() }
+
+        binding.btnModeExclude.setOnClickListener { setMode(true) }
+        binding.btnModeInclude.setOnClickListener { setMode(false) }
+
+        binding.btnClearSelection.setOnClickListener {
+            appsRouting.clear()
+            if (::appsRoutingAdapter.isInitialized) {
+                appsRoutingAdapter.notifyDataSetChanged()
+            }
+            updateStats()
+        }
+
+        binding.btnSaveFloating.setOnClickListener { saveAppsRouting() }
 
         binding.search.focusable = View.NOT_FOCUSABLE
         binding.search.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
@@ -65,116 +76,131 @@ class AppsRoutingActivity : AppCompatActivity() {
                 binding.search.clearFocus()
             }
 
+        updateModeUi()
         getApps()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        this.menu = menu
-        menuInflater.inflate(R.menu.menu_apps_routing, menu)
-        handleMode()
-        return true
+    private fun setMode(mode: Boolean) {
+        if (appsRoutingMode == mode) return
+        appsRoutingMode = mode
+        updateModeUi()
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.appsRoutingSave -> saveAppsRouting()
-            R.id.appsRoutingExcludeMode -> setMode(false)
-            R.id.appsRoutingIncludeMode -> setMode(true)
-            else -> finish()
-        }
-        return true
-    }
-
-    private fun setMode(appsRoutingMode: Boolean) {
-        this.appsRoutingMode = appsRoutingMode
-        handleMode().also { message ->
-            Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
+    private fun updateModeUi() {
+        if (appsRoutingMode) {
+            binding.btnModeExclude.setCardBackgroundColor(Color.parseColor("#3A75FF"))
+            binding.textModeExclude.setTextColor(Color.WHITE)
+            binding.btnModeInclude.setCardBackgroundColor(Color.parseColor("#1E293B"))
+            binding.textModeInclude.setTextColor(Color.parseColor("#94A3B8"))
+            binding.modeDescription.text = "Трафик выбранных приложений будет идти напрямую, минуя VPN."
+        } else {
+            binding.btnModeExclude.setCardBackgroundColor(Color.parseColor("#1E293B"))
+            binding.textModeExclude.setTextColor(Color.parseColor("#94A3B8"))
+            binding.btnModeInclude.setCardBackgroundColor(Color.parseColor("#3A75FF"))
+            binding.textModeInclude.setTextColor(Color.WHITE)
+            binding.modeDescription.text = "Трафик ТОЛЬКО выбранных приложений будет направляться через VPN."
         }
     }
 
-    private fun handleMode(): String {
-        val excludeItem = menu.findItem(R.id.appsRoutingExcludeMode)
-        val includeItem = menu.findItem(R.id.appsRoutingIncludeMode)
-        return when (this.appsRoutingMode) {
-            true -> {
-                excludeItem.isVisible = true
-                includeItem.isVisible = false
-                getString(R.string.appsRoutingExcludeMode)
-            }
-
-            false -> {
-                excludeItem.isVisible = false
-                includeItem.isVisible = true
-                getString(R.string.appsRoutingIncludeMode)
-            }
-        }
+    private fun updateStats() {
+        val selectedCount = appsRouting.filter { it.isNotBlank() }.size
+        binding.selectedCountText.text = "Выбрано приложений: $selectedCount из ${apps.size}"
     }
 
     @SuppressLint("NotifyDataSetChanged")
     private fun search(query: String?) {
         val keyword = query?.trim()?.lowercase() ?: ""
         if (keyword.isEmpty()) {
-            if (apps.size > filtered.size) {
-                filtered.clear()
-                filtered.addAll(apps.toMutableList())
-                appsRoutingAdapter.notifyDataSetChanged()
+            filtered.clear()
+            filtered.addAll(apps)
+        } else {
+            val list = apps.filter {
+                it.appName.lowercase().contains(keyword) || it.packageName.lowercase().contains(keyword)
             }
-            return
+            filtered.clear()
+            filtered.addAll(list)
         }
-        val list = ArrayList<AppList>()
-        apps.forEach {
-            if (it.appName.lowercase().contains(keyword) || it.packageName.contains(keyword)) {
-                list.add(it)
-            }
+        if (::appsRoutingAdapter.isInitialized) {
+            appsRoutingAdapter.notifyDataSetChanged()
         }
-        filtered.clear()
-        filtered.addAll(list.toMutableList())
-        appsRoutingAdapter.notifyDataSetChanged()
     }
 
     private fun getApps() {
-        lifecycleScope.launch {
+        binding.loadingProgress.isVisible = true
+        binding.appsList.isVisible = false
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val rawRouting = settings.appsRouting.split("\n").map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
             val selected = ArrayList<AppList>()
             val unselected = ArrayList<AppList>()
-            packageManager.getInstalledPackages(PackageManager.GET_PERMISSIONS).forEach {
-                val appIcon = it.applicationInfo!!.loadIcon(packageManager)
-                val appName = it.applicationInfo!!.loadLabel(packageManager).toString()
-                val packageName = it.packageName
-                val app = AppList(appIcon, appName, packageName)
-                val isSelected = settings.appsRouting.contains(packageName)
-                if (isSelected) selected.add(app) else unselected.add(app)
+
+            runCatching {
+                val installedPackages = packageManager.getInstalledPackages(PackageManager.GET_PERMISSIONS)
+                for (pkg in installedPackages) {
+                    val appInfo = pkg.applicationInfo ?: continue
+                    val packageName = pkg.packageName.takeIf { it.isNotBlank() } ?: continue
+                    
+                    val appName = runCatching {
+                        appInfo.loadLabel(packageManager).toString()
+                    }.getOrNull().takeIf { !it.isNullOrBlank() } ?: packageName
+
+                    val appIcon = runCatching {
+                        appInfo.loadIcon(packageManager)
+                    }.getOrNull() ?: continue
+
+                    val app = AppList(appIcon, appName, packageName)
+                    if (rawRouting.contains(packageName)) {
+                        selected.add(app)
+                    } else {
+                        unselected.add(app)
+                    }
+                }
             }
+
+            selected.sortBy { it.appName.lowercase() }
+            unselected.sortBy { it.appName.lowercase() }
+
+            val loadedApps = ArrayList(selected + unselected)
+
             withContext(Dispatchers.Main) {
-                apps = ArrayList(selected + unselected)
+                apps = loadedApps
                 filtered = apps.toMutableList()
-                appsRouting = settings.appsRouting.split("\n").toMutableSet()
+                appsRouting = rawRouting
+
                 appsList = binding.appsList
                 appsRoutingAdapter = AppsRoutingAdapter(
                     this@AppsRoutingActivity, filtered, appsRouting
-                )
+                ) {
+                    updateStats()
+                }
                 appsList.adapter = appsRoutingAdapter
                 appsList.layoutManager = LinearLayoutManager(applicationContext)
+
+                binding.loadingProgress.isVisible = false
+                binding.appsList.isVisible = true
+                updateStats()
             }
         }
     }
 
     private fun saveAppsRouting() {
-        val appsRoutingMode = this.appsRoutingMode
-        val appsRouting = this.appsRouting.joinToString("\n")
+        val newRoutingMode = this.appsRoutingMode
+        val newRoutingStr = this.appsRouting.filter { it.isNotBlank() }.joinToString("\n")
 
-        lifecycleScope.launch {
-            val tproxySettingsChanged = settings.appsRoutingMode != appsRoutingMode ||
-                    settings.appsRouting != appsRouting
+        lifecycleScope.launch(Dispatchers.IO) {
+            val tproxySettingsChanged = settings.appsRoutingMode != newRoutingMode ||
+                    settings.appsRouting != newRoutingStr
             val stopService = tproxySettingsChanged && settings.xrayCorePid().exists()
             if (tproxySettingsChanged) transparentProxyHelper.kill()
+
             withContext(Dispatchers.Main) {
                 binding.search.clearFocus()
-                settings.appsRoutingMode = appsRoutingMode
-                settings.appsRouting = appsRouting
+                settings.appsRoutingMode = newRoutingMode
+                settings.appsRouting = newRoutingStr
                 if (stopService) TProxyService.stop(this@AppsRoutingActivity)
+                Toast.makeText(applicationContext, "Настройки сохранены", Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
     }
-
 }

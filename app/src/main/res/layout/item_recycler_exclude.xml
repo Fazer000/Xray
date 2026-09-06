@@ -5,15 +5,15 @@
     android:id="@+id/appContainer"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
+    android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="4dp"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground"
-    app:cardBackgroundColor="#1E293B"
+    app:cardBackgroundColor="#131C2E"
     app:cardCornerRadius="14dp"
-    app:cardElevation="2dp"
-    app:strokeColor="#334155"
+    app:cardElevation="0dp"
+    app:strokeColor="#24324D"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -25,8 +25,8 @@
 
         <ImageView
             android:id="@+id/appIcon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             android:contentDescription="@string/appIcon" />
 
         <LinearLayout
@@ -43,7 +43,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="@android:color/white"
-                android:textSize="15sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -53,8 +53,8 @@
                 android:layout_marginTop="2dp"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:textColor="#94A3B8"
-                android:textSize="12sp" />
+                android:textColor="#64748B"
+                android:textSize="11sp" />
         </LinearLayout>
 
         <com.google.android.material.checkbox.MaterialCheckBox
@@ -63,6 +63,6 @@
             android:layout_height="wrap_content"
             android:clickable="false"
             android:focusable="false"
-            app:buttonTint="#10B981" />
+            app:buttonTint="#3A75FF" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

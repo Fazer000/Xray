@@ -12,12 +12,17 @@ import com.google.android.material.card.MaterialCardView
 import io.github.saeeddev94.xray.R
 import io.github.saeeddev94.xray.Settings
 import io.github.saeeddev94.xray.dto.ProfileList
+import io.github.saeeddev94.xray.helper.LinkHelper
 import io.github.saeeddev94.xray.helper.PingHelper
 import io.github.saeeddev94.xray.helper.ProfileTouchHelper
 import io.github.saeeddev94.xray.viewmodel.ProfileViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
@@ -31,41 +36,54 @@ class ProfileAdapter(
     private val profileDelete: (profile: ProfileList) -> Unit,
 ) : RecyclerView.Adapter<ProfileAdapter.ViewHolder>(), ProfileTouchHelper.ProfileTouchCallback {
 
-    private val pingMap = ConcurrentHashMap<Long, String>()
+    companion object {
+        private const val PAYLOAD_PING = "PAYLOAD_PING"
+        val pingCache = ConcurrentHashMap<Long, String>()
+        private val pingSemaphore = Semaphore(6)
+    }
 
     fun pingAll() {
-        profiles.forEach { profile ->
-            testPing(profile)
+        val targets = ArrayList(profiles)
+        scope.launch(Dispatchers.IO) {
+            targets.map { profile ->
+                async {
+                    pingSemaphore.withPermit {
+                        testPingInternal(profile)
+                    }
+                }
+            }.awaitAll()
         }
     }
 
-    private fun testPing(profile: ProfileList) {
-        val hostAndPort = PingHelper.extractHostAndPort(profile.config) ?: run {
-            pingMap[profile.id] = "N/A"
-            val pos = profiles.indexOf(profile)
-            if (pos != -1) notifyItemChanged(pos)
+    private suspend fun testPingInternal(profile: ProfileList) {
+        val hostAndPort = PingHelper.extractHostAndPort(profile.config)
+        if (hostAndPort == null) {
+            pingCache[profile.id] = "N/A"
+            notifyPingChanged(profile.id)
             return
         }
 
-        pingMap[profile.id] = "..."
-        val pos = profiles.indexOf(profile)
-        if (pos != -1) notifyItemChanged(pos)
+        pingCache[profile.id] = "..."
+        notifyPingChanged(profile.id)
 
-        scope.launch(Dispatchers.IO) {
-            val ms = PingHelper.ping(hostAndPort.first, hostAndPort.second)
-            val resultText = if (ms >= 0) "${ms} ms" else "Error"
-            pingMap[profile.id] = resultText
-            withContext(Dispatchers.Main) {
-                val currentPos = profiles.indexOfFirst { it.id == profile.id }
-                if (currentPos != -1) notifyItemChanged(currentPos)
+        val ms = PingHelper.ping(hostAndPort.first, hostAndPort.second)
+        val resultText = if (ms >= 0) "${ms} ms" else "Error"
+        pingCache[profile.id] = resultText
+        notifyPingChanged(profile.id)
+    }
+
+    private suspend fun notifyPingChanged(profileId: Long) {
+        withContext(Dispatchers.Main) {
+            val currentPos = profiles.indexOfFirst { it.id == profileId }
+            if (currentPos != -1) {
+                notifyItemChanged(currentPos, PAYLOAD_PING)
             }
         }
     }
 
     override fun onCreateViewHolder(container: ViewGroup, type: Int): ViewHolder {
-        val linearLayout = LinearLayout(container.context)
         val item: View = LayoutInflater.from(container.context).inflate(
-            R.layout.item_recycler_main, linearLayout, false
+            R.layout.item_recycler_main, container, false
         )
         return ViewHolder(item)
     }
@@ -74,10 +92,19 @@ class ProfileAdapter(
         return profiles.size
     }
 
+    override fun onBindViewHolder(holder: ViewHolder, index: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(PAYLOAD_PING)) {
+            val profile = profiles[index]
+            bindPingBtn(holder, profile)
+            return
+        }
+        super.onBindViewHolder(holder, index, payloads)
+    }
+
     override fun onBindViewHolder(holder: ViewHolder, index: Int) {
         val profile = profiles[index]
         val isSelected = settings.selectedProfile == profile.id
-        
+
         if (isSelected) {
             holder.activeIndicator.setBackgroundResource(R.drawable.ic_dot_status_active)
             holder.profileCard.setCardBackgroundColor(Color.parseColor("#1D233A"))
@@ -90,34 +117,44 @@ class ProfileAdapter(
             holder.profileCard.strokeWidth = 1
         }
 
-        val fullTitle = profile.name
-        val bracketStart = fullTitle.indexOf('[')
-        val bracketEnd = fullTitle.lastIndexOf(']')
+        val cleanedName = LinkHelper.cleanServerName(profile.name)
+        val protoAndAddr = PingHelper.extractProtocolAndAddress(profile.config)
 
-        if (bracketStart != -1 && bracketEnd > bracketStart) {
-            val mainTitle = fullTitle.substring(0, bracketStart).trim()
-            val bracketDetails = fullTitle.substring(bracketStart + 1, bracketEnd).trim()
-            holder.profileName.text = if (mainTitle.isNotBlank()) mainTitle else fullTitle
-            holder.profileAddress.text = bracketDetails
+        holder.profileName.text = cleanedName
+        if (protoAndAddr != null) {
+            holder.profileAddress.text = protoAndAddr.second
             holder.profileAddress.isVisible = true
+            holder.badgeProtocol.text = protoAndAddr.first.uppercase()
         } else {
-            holder.profileName.text = fullTitle
-            val protoAndAddr = PingHelper.extractProtocolAndAddress(profile.config)
-            if (protoAndAddr != null) {
-                holder.profileAddress.text = protoAndAddr.second
-                holder.profileAddress.isVisible = true
-                holder.badgeProtocol.text = protoAndAddr.first.uppercase()
-            } else {
-                holder.profileAddress.isVisible = false
-                holder.badgeProtocol.text = "PROXY"
-            }
+            holder.profileAddress.isVisible = false
+            holder.badgeProtocol.text = "PROXY"
         }
 
         val isSubscriptionProfile = profile.link != null && profile.link!! > 0L
         holder.profileEdit.isVisible = !isSubscriptionProfile
         holder.profileDelete.isVisible = !isSubscriptionProfile
 
-        val pingText = pingMap[profile.id] ?: "-"
+        bindPingBtn(holder, profile)
+
+        holder.profilePingBtn.setOnClickListener {
+            scope.launch(Dispatchers.IO) {
+                testPingInternal(profile)
+            }
+        }
+
+        holder.profileCard.setOnClickListener {
+            profileSelect(index, profile)
+        }
+        holder.profileEdit.setOnClickListener {
+            profileEdit(profile)
+        }
+        holder.profileDelete.setOnClickListener {
+            profileDelete(profile)
+        }
+    }
+
+    private fun bindPingBtn(holder: ViewHolder, profile: ProfileList) {
+        val pingText = pingCache[profile.id] ?: "-"
         holder.profilePingBtn.text = pingText
         when {
             pingText.contains("ms") -> {
@@ -133,20 +170,6 @@ class ProfileAdapter(
             pingText.contains("Error") -> holder.profilePingBtn.setTextColor(Color.parseColor("#EF4444"))
             pingText.contains("...") -> holder.profilePingBtn.setTextColor(Color.parseColor("#94A3B8"))
             else -> holder.profilePingBtn.setTextColor(Color.parseColor("#38BDF8"))
-        }
-
-        holder.profilePingBtn.setOnClickListener {
-            testPing(profile)
-        }
-
-        holder.profileCard.setOnClickListener {
-            profileSelect(index, profile)
-        }
-        holder.profileEdit.setOnClickListener {
-            profileEdit(profile)
-        }
-        holder.profileDelete.setOnClickListener {
-            profileDelete(profile)
         }
     }
 
