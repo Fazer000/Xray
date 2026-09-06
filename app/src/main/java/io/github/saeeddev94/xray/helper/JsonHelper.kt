@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
@@ -57,9 +58,18 @@ object JsonHelper {
     }
 
     fun sanitizeOutbound(outbound: JsonObject): JsonObject {
-        val streamSettings = outbound["streamSettings"] as? JsonObject ?: return outbound
-        val sanitizedStream = sanitizeStreamSettings(streamSettings)
-        return outbound.putValue("streamSettings", sanitizedStream)
+        var result = outbound
+        val streamSettings = outbound["streamSettings"] as? JsonObject
+        if (streamSettings != null) {
+            val sanitizedStream = sanitizeStreamSettings(streamSettings)
+            result = result.putValue("streamSettings", sanitizedStream)
+        }
+        val mux = result["mux"] as? JsonObject
+        if (mux != null && (mux["enabled"]?.jsonPrimitive?.contentOrNull == "true" || mux["enabled"]?.jsonPrimitive?.booleanOrNull == true)) {
+            val disabledMux = mux.putValue("enabled", JsonPrimitive(false))
+            result = result.putValue("mux", disabledMux)
+        }
+        return result
     }
 
     fun mergeObjects(

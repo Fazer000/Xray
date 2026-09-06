@@ -5,10 +5,13 @@ import io.github.saeeddev94.xray.database.Config
 import io.github.saeeddev94.xray.extensions.encodeToString
 import io.github.saeeddev94.xray.extensions.putValue
 import io.github.saeeddev94.xray.extensions.remove
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
@@ -49,11 +52,60 @@ class ConfigHelper(
         base = base.putValue("outbounds", sanitizedOutbounds)
 
         val dnsObj = JsonHelper.getObject(base, "dns")
-        if (!dnsObj.containsKey("queryStrategy")) {
-            val dnsMap = dnsObj.toMutableMap()
+        val dnsMap = dnsObj.toMutableMap()
+        if (!dnsMap.containsKey("queryStrategy")) {
             dnsMap["queryStrategy"] = kotlinx.serialization.json.JsonPrimitive(if (settings.enableIpV6) "UseIP" else "UseIPv4")
-            base = base.putValue("dns", JsonObject(dnsMap))
         }
+
+        val existingHosts = (dnsMap["hosts"] as? JsonObject)?.toMutableMap() ?: mutableMapOf()
+        if (!existingHosts.containsKey("dns.google")) {
+            existingHosts["dns.google"] = buildJsonArray {
+                add(kotlinx.serialization.json.JsonPrimitive("8.8.8.8"))
+                add(kotlinx.serialization.json.JsonPrimitive("8.8.4.4"))
+            }
+        }
+        if (!existingHosts.containsKey("dns.cloudflare.com")) {
+            existingHosts["dns.cloudflare.com"] = buildJsonArray {
+                add(kotlinx.serialization.json.JsonPrimitive("1.1.1.1"))
+                add(kotlinx.serialization.json.JsonPrimitive("1.0.0.1"))
+            }
+        }
+        if (!existingHosts.containsKey("one.one.one.one")) {
+            existingHosts["one.one.one.one"] = buildJsonArray {
+                add(kotlinx.serialization.json.JsonPrimitive("1.1.1.1"))
+                add(kotlinx.serialization.json.JsonPrimitive("1.0.0.1"))
+            }
+        }
+        if (!existingHosts.containsKey("common.dot.dns.yandex.net")) {
+            existingHosts["common.dot.dns.yandex.net"] = buildJsonArray {
+                add(kotlinx.serialization.json.JsonPrimitive("77.88.8.8"))
+                add(kotlinx.serialization.json.JsonPrimitive("77.88.8.1"))
+            }
+        }
+        dnsMap["hosts"] = JsonObject(existingHosts)
+
+        val rawServers = dnsMap["servers"] as? JsonArray
+        if (rawServers != null && rawServers.isNotEmpty()) {
+            val serversList = rawServers.toMutableList()
+            val hasIpServer = serversList.any { elem ->
+                val str = (elem as? JsonObject)?.get("address")?.jsonPrimitive?.contentOrNull
+                    ?: elem.jsonPrimitive.contentOrNull
+                    ?: ""
+                !str.startsWith("https://") && !str.startsWith("http://") && !str.startsWith("tcp://") && !str.startsWith("udp://") && str.any { it.isDigit() }
+            }
+            if (!hasIpServer) {
+                serversList.add(kotlinx.serialization.json.JsonPrimitive(settings.primaryDns.ifBlank { "1.1.1.1" }))
+                serversList.add(kotlinx.serialization.json.JsonPrimitive(settings.secondaryDns.ifBlank { "1.0.0.1" }))
+            }
+            dnsMap["servers"] = JsonArray(serversList)
+        } else {
+            dnsMap["servers"] = buildJsonArray {
+                add(kotlinx.serialization.json.JsonPrimitive(settings.primaryDns.ifBlank { "1.1.1.1" }))
+                add(kotlinx.serialization.json.JsonPrimitive(settings.secondaryDns.ifBlank { "1.0.0.1" }))
+            }
+        }
+
+        base = base.putValue("dns", JsonObject(dnsMap))
 
         val routingObj = JsonHelper.getObject(base, "routing")
         if (!routingObj.containsKey("domainStrategy")) {
