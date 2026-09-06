@@ -88,14 +88,18 @@ class LinkFormFragment(
 
         btnSave.setOnClickListener {
             val address = addressEditText.text.toString().trim()
-            val uri = runCatching { URI(address) }.getOrNull()
-            if (uri == null) {
-                Toast.makeText(requireContext(), getString(R.string.invalidLink), Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (uri.scheme != "https") {
-                Toast.makeText(requireContext(), getString(R.string.onlyHttps), Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+            if (io.github.saeeddev94.xray.helper.HappHelper.isHappUrl(address)) {
+                // Valid Happ scheme
+            } else {
+                val uri = runCatching { URI(address) }.getOrNull()
+                if (uri == null) {
+                    Toast.makeText(requireContext(), getString(R.string.invalidLink), Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (uri.scheme != "https" && uri.scheme != "http") {
+                    Toast.makeText(requireContext(), getString(R.string.onlyHttps), Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
             }
 
             link.type = selectedType

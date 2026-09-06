@@ -69,6 +69,9 @@ class HttpHelper(
             userAgent: String? = null,
             hardwareId: String? = null,
         ): SubscriptionResponse {
+            if (HappHelper.isHappUrl(link)) {
+                return HappHelper.processHappUrl(link, userAgent, hardwareId)
+            }
             return withContext(Dispatchers.IO) {
                 val connection = getConnection(
                     link,
@@ -81,7 +84,7 @@ class HttpHelper(
                 var profileWebPageUrl: String? = null
                 var announcement: String? = null
 
-                val responseBody = try {
+                var responseBody = try {
                     connection.connect()
                     responseCode = connection.responseCode
                     userInfo = connection.getHeaderField("subscription-userinfo")
@@ -106,6 +109,14 @@ class HttpHelper(
                 if (responseCode != HttpURLConnection.HTTP_OK || responseBody == null) {
                     throw Exception("HTTP Error: $responseCode")
                 }
+
+                if (HappHelper.isHappContent(responseBody)) {
+                    val decrypted = HappHelper.decryptLocal(responseBody)
+                    if (!decrypted.isNullOrBlank()) {
+                        responseBody = decrypted
+                    }
+                }
+
                 SubscriptionResponse(
                     body = responseBody,
                     userInfo = userInfo,

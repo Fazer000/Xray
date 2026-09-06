@@ -493,7 +493,11 @@ class LinksManagerActivity : AppCompatActivity() {
 
     private fun subscriptionProfiles(link: Link, value: String): List<Profile> {
         val trimmed = value.trim()
-        val decoded = runCatching { LinkHelper.tryDecodeBase64(trimmed).trim() }.getOrNull() ?: trimmed
+        val happDecrypted = if (io.github.saeeddev94.xray.helper.HappHelper.isHappContent(trimmed)) {
+            io.github.saeeddev94.xray.helper.HappHelper.decryptLocal(trimmed)
+        } else null
+        val workingContent = happDecrypted ?: trimmed
+        val decoded = runCatching { LinkHelper.tryDecodeBase64(workingContent).trim() }.getOrNull() ?: workingContent
 
         if (decoded.startsWith("[") || decoded.startsWith("{")) {
             return jsonProfiles(link, decoded)
