@@ -41,19 +41,19 @@ class ProfileAdapter(
 
     private fun testPing(profile: ProfileList) {
         val hostAndPort = PingHelper.extractHostAndPort(profile.config) ?: run {
-            pingMap[profile.id] = "⚡️ N/A"
+            pingMap[profile.id] = "N/A"
             val pos = profiles.indexOf(profile)
             if (pos != -1) notifyItemChanged(pos)
             return
         }
 
-        pingMap[profile.id] = "⚡️ ..."
+        pingMap[profile.id] = "..."
         val pos = profiles.indexOf(profile)
         if (pos != -1) notifyItemChanged(pos)
 
         scope.launch(Dispatchers.IO) {
             val ms = PingHelper.ping(hostAndPort.first, hostAndPort.second)
-            val resultText = if (ms >= 0) "⚡️ ${ms}ms" else "⚡️ Error"
+            val resultText = if (ms >= 0) "${ms} ms" else "Error"
             pingMap[profile.id] = resultText
             withContext(Dispatchers.Main) {
                 val currentPos = profiles.indexOfFirst { it.id == profile.id }
@@ -113,11 +113,15 @@ class ProfileAdapter(
             }
         }
 
-        val pingText = pingMap[profile.id] ?: "⚡️ -"
+        val isSubscriptionProfile = profile.link != null && profile.link!! > 0L
+        holder.profileEdit.isVisible = !isSubscriptionProfile
+        holder.profileDelete.isVisible = !isSubscriptionProfile
+
+        val pingText = pingMap[profile.id] ?: "-"
         holder.profilePingBtn.text = pingText
         when {
             pingText.contains("ms") -> {
-                val msVal = pingText.removePrefix("⚡️ ").removeSuffix("ms").trim().toLongOrNull() ?: 0L
+                val msVal = pingText.replace("ms", "").trim().toLongOrNull() ?: 0L
                 holder.profilePingBtn.setTextColor(
                     when {
                         msVal < 150 -> Color.parseColor("#10B981")

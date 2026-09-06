@@ -126,7 +126,7 @@
                 android:focusable="true"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="4dp"
-                android:text="⚡️ -"
+                android:text="-"
                 android:textColor="#3A75FF"
                 android:textSize="13sp"
                 android:textStyle="bold" />

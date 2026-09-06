@@ -92,20 +92,7 @@ class LinksManagerActivity : AppCompatActivity() {
         }.show(supportFragmentManager, null)
     }
 
-    private fun loadingDialog(): Dialog {
-        val dialogView = LayoutInflater.from(this).inflate(
-            R.layout.loading_dialog,
-            LinearLayout(this)
-        )
-        return MaterialAlertDialogBuilder(this)
-            .setView(dialogView)
-            .setCancelable(false)
-            .create()
-    }
-
     private fun refreshLinks() {
-        val loadingDialog = loadingDialog()
-        loadingDialog.show()
         lifecycleScope.launch {
             val links = linkViewModel.activeLinks()
             links.forEach { link ->
@@ -150,7 +137,7 @@ class LinksManagerActivity : AppCompatActivity() {
             withContext(Dispatchers.Main) {
                 settings.lastRefreshLinks = System.currentTimeMillis()
                 TProxyService.newConfig(applicationContext)
-                loadingDialog.dismiss()
+                setResult(RESULT_OK)
                 finish()
             }
         }
@@ -592,12 +579,19 @@ class LinksManagerActivity : AppCompatActivity() {
 
     private fun deleteLink(link: Link) {
         lifecycleScope.launch {
-            profileViewModel.linkProfiles(link.id)
-                .forEach { linkProfile ->
-                    deleteProfile(linkProfile)
+            runCatching {
+                val selectedProfileId = settings.selectedProfile
+                val profilesOfLink = profileViewModel.linkProfiles(link.id)
+                if (profilesOfLink.any { it.id == selectedProfileId }) {
+                    settings.selectedProfile = 0L
                 }
-            linkViewModel.delete(link)
+                if (settings.selectedLink == link.id) {
+                    settings.selectedLink = 0L
+                }
+                linkViewModel.delete(link)
+            }
             withContext(Dispatchers.Main) {
+                setResult(RESULT_OK)
                 finish()
             }
         }

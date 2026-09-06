@@ -1,6 +1,8 @@
 package io.github.saeeddev94.xray.activity
 
 import XrayCore.XrayCore
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.BroadcastReceiver
 import android.content.ClipboardManager
 import android.content.Context
@@ -15,6 +17,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -87,6 +90,13 @@ class MainActivity : AppCompatActivity() {
     }
     private val notificationPermission = registerForActivityResult(RequestPermission()) {
         onToggleButtonClick()
+    }
+    private var refreshAnimator: ObjectAnimator? = null
+    private val refreshLauncher = registerForActivityResult(StartActivityForResult()) {
+        stopRefreshAnimation()
+        if (it.resultCode == RESULT_OK) {
+            Toast.makeText(applicationContext, "Подписки успешно обновлены", Toast.LENGTH_SHORT).show()
+        }
     }
     private val linksManager = registerForActivityResult(StartActivityForResult()) {
         if (it.resultCode != RESULT_OK) return@registerForActivityResult
@@ -203,6 +213,7 @@ class MainActivity : AppCompatActivity() {
                 1 -> "Подписки"
                 else -> "Настройки"
             }
+            binding.toolbar.subtitle = if (position == 0) "v${BuildConfig.VERSION_NAME}" else null
             invalidateOptionsMenu()
         }
 
@@ -239,15 +250,8 @@ class MainActivity : AppCompatActivity() {
 
         // Provider Card Refresh & Buttons
         findViewById<ImageView>(R.id.providerRefreshBtn)?.setOnClickListener { refreshLinks() }
-        findViewById<ImageView>(R.id.providerShareBtn)?.setOnClickListener {
-            val link = currentLinksList.firstOrNull()
-            if (link != null) {
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, link.address)
-                }
-                startActivity(Intent.createChooser(intent, "Поделиться подпиской"))
-            }
+        findViewById<ImageView>(R.id.providerPingBtn)?.setOnClickListener {
+            if (::profileAdapter.isInitialized) profileAdapter.pingAll()
         }
 
         findViewById<TextView>(R.id.btnSupport)?.setOnClickListener {
@@ -416,32 +420,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        return true
+        return false
     }
 
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        if (menu == null) return super.onPrepareOptionsMenu(menu)
-        val isServersTab = binding.screenServers.isVisible
-        menu.findItem(R.id.pingAll)?.isVisible = isServersTab
-        menu.findItem(R.id.refreshLinks)?.isVisible = isServersTab || binding.screenSubscriptions.isVisible
-        menu.findItem(R.id.newProfile)?.isVisible = isServersTab
-        return super.onPrepareOptionsMenu(menu)
+        return false
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.pingAll -> if (::profileAdapter.isInitialized) profileAdapter.pingAll()
-            R.id.refreshLinks -> refreshLinks()
-            R.id.newProfile -> startActivity(ProfileActivity.getIntent(applicationContext))
-            R.id.scanQrCode -> cameraPermission.launch(android.Manifest.permission.CAMERA)
-            R.id.fromClipboard -> {
-                runCatching {
-                    clipboardManager.primaryClip!!.getItemAt(0).text.toString().trim()
-                }.getOrNull()?.let { processLink(it) }
-            }
-        }
-        return true
+        return super.onOptionsItemSelected(item)
     }
 
     private fun tabsList(list: List<Link>): List<Link> {
@@ -465,7 +452,18 @@ class MainActivity : AppCompatActivity() {
             tab.text = it.name
             binding.linksTab.addTab(tab)
         }
-        binding.linksTab.selectTab(binding.linksTab.getTabAt(index))
+        binding.linksTab.post {
+            val slidingTabStrip = binding.linksTab.getChildAt(0) as? android.view.ViewGroup
+            slidingTabStrip?.let { strip ->
+                for (i in 0 until strip.childCount) {
+                    val tabView = strip.getChildAt(i)
+                    val params = tabView.layoutParams as? android.view.ViewGroup.MarginLayoutParams
+                    params?.setMargins(6, 0, 6, 0)
+                    tabView.requestLayout()
+                }
+            }
+        }
+        binding.linksTab.getTabAt(index)?.let { binding.linksTab.selectTab(it) }
         binding.linksTab.addOnTabSelectedListener(linksTabListener)
     }
 
@@ -489,10 +487,11 @@ class MainActivity : AppCompatActivity() {
             binding.activeProfileName.text = currentProfile.name
         } else {
             lifecycleScope.launch {
-                val profile = profileViewModel.find(selectedId)
-                if (profile.id > 0L) {
+                val profile = runCatching { profileViewModel.find(selectedId) }.getOrNull()
+                if (profile != null && profile.id > 0L) {
                     binding.activeProfileName.text = profile.name
                 } else {
+                    settings.selectedProfile = 0L
                     binding.activeProfileName.text = "Сервер не выбран"
                 }
             }
@@ -592,8 +591,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun deleteLink(link: Link) {
-        val intent = LinksManagerActivity.deleteLink(applicationContext, link)
-        linksManager.launch(intent)
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Удалить подписку?")
+            .setMessage("Подписка \"${link.name.ifBlank { "Подписка #${link.id}" }}\" и все ее сервера будут удалены.")
+            .setNegativeButton("Отмена", null)
+            .setPositiveButton("Удалить") { _, _ ->
+                val intent = LinksManagerActivity.deleteLink(applicationContext, link)
+                linksManager.launch(intent)
+            }
+            .show()
     }
 
     private fun processLink(link: String) {
@@ -621,7 +627,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshLinks() {
-        startActivity(LinksManagerActivity.refreshLinks(applicationContext))
+        startRefreshAnimation()
+        refreshLauncher.launch(LinksManagerActivity.refreshLinks(applicationContext))
+    }
+
+    private fun startRefreshAnimation() {
+        val refreshBtn = findViewById<ImageView>(R.id.providerRefreshBtn)
+        if (refreshAnimator == null && refreshBtn != null) {
+            refreshAnimator = ObjectAnimator.ofFloat(refreshBtn, "rotation", 0f, 360f).apply {
+                duration = 800
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+                start()
+            }
+        }
+    }
+
+    private fun stopRefreshAnimation() {
+        refreshAnimator?.cancel()
+        refreshAnimator = null
+        findViewById<ImageView>(R.id.providerRefreshBtn)?.animate()?.rotation(0f)?.setDuration(250)?.start()
     }
 
     private fun openLink(uri: URI) {

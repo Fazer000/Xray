@@ -21,8 +21,9 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="XRAY v3.5.8"
-            app:titleTextColor="@android:color/white" />
+            app:title="XRAY"
+            app:titleTextColor="@android:color/white"
+            app:subtitleTextColor="#8E92A8" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <FrameLayout
@@ -31,24 +32,24 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- SCREEN 1: SERVERS (INCY PROVIDER + SERVERS LIST) -->
-        <LinearLayout
+        <!-- SCREEN 1: SERVERS (INCY PROVIDER + SERVERS LIST + PINNED VPN CARD) -->
+        <RelativeLayout
             android:id="@+id/screenServers"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
             android:visibility="visible">
 
             <androidx.core.widget.NestedScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:layout_above="@+id/bottomPinnedContainer"
                 android:fillViewport="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingBottom="80dp">
+                    android:paddingBottom="16dp">
 
                     <!-- SECTION LABEL: ТЕКУЩИЙ ПРОВАЙДЕР -->
                     <TextView
@@ -139,7 +140,7 @@
                                     app:tint="#8E92A8" />
 
                                 <ImageView
-                                    android:id="@+id/providerShareBtn"
+                                    android:id="@+id/providerPingBtn"
                                     android:layout_width="28dp"
                                     android:layout_height="28dp"
                                     android:layout_marginStart="4dp"
@@ -147,8 +148,8 @@
                                     android:clickable="true"
                                     android:focusable="true"
                                     android:padding="4dp"
-                                    android:src="@drawable/ic_share"
-                                    app:tint="#8E92A8" />
+                                    android:src="@drawable/ic_bolt"
+                                    app:tint="#3A75FF" />
 
                                 <ImageView
                                     android:id="@+id/providerMenuBtn"
@@ -343,9 +344,10 @@
                         android:layout_marginBottom="8dp"
                         android:background="@android:color/transparent"
                         app:tabBackground="@drawable/bg_action_pill"
-                        app:tabIndicatorColor="#3A75FF"
-                        app:tabIndicatorHeight="3dp"
+                        app:tabIndicatorHeight="0dp"
                         app:tabMode="scrollable"
+                        app:tabPaddingStart="12dp"
+                        app:tabPaddingEnd="12dp"
                         app:tabRippleColor="#203A75FF"
                         app:tabSelectedTextColor="#3A75FF"
                         app:tabTextColor="#8E92A8" />
@@ -357,107 +359,121 @@
                         android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false" />
 
-                    <!-- VPN TOGGLE CONNECT CARD -->
-                    <com.google.android.material.card.MaterialCardView
-                        android:id="@+id/vpnCard"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="12dp"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"
-                        app:cardBackgroundColor="#1A1B24"
-                        app:cardCornerRadius="20dp"
-                        app:cardElevation="4dp"
-                        app:strokeColor="#282A38"
-                        app:strokeWidth="1dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:padding="16dp">
-
-                            <View
-                                android:id="@+id/vpnStatusDot"
-                                android:layout_width="12dp"
-                                android:layout_height="12dp"
-                                android:background="@drawable/ic_dot_status_inactive" />
-
-                            <LinearLayout
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="12dp"
-                                android:layout_weight="1"
-                                android:orientation="vertical">
-
-                                <TextView
-                                    android:id="@+id/vpnStatusText"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Нажмите для подключения"
-                                    android:textColor="@android:color/white"
-                                    android:textSize="15sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:id="@+id/activeProfileName"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginTop="2dp"
-                                    android:ellipsize="end"
-                                    android:maxLines="1"
-                                    android:text="Сервер не выбран"
-                                    android:textColor="#8E92A8"
-                                    android:textSize="12sp" />
-                            </LinearLayout>
-
-                            <LinearLayout
-                                android:id="@+id/pingBox"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginEnd="8dp"
-                                android:background="?android:attr/selectableItemBackground"
-                                android:clickable="true"
-                                android:focusable="true"
-                                android:gravity="center"
-                                android:paddingHorizontal="8dp"
-                                android:paddingVertical="4dp">
-
-                                <TextView
-                                    android:id="@+id/pingResult"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="⚡️ -- ms"
-                                    android:textColor="#3A75FF"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-
-                            <com.google.android.material.button.MaterialButton
-                                android:id="@+id/toggleButton"
-                                android:layout_width="wrap_content"
-                                android:layout_height="48dp"
-                                android:backgroundTint="#3A75FF"
-                                android:paddingHorizontal="16dp"
-                                android:text="СТАРТ"
-                                android:textColor="@android:color/white"
-                                android:textSize="14sp"
-                                android:textStyle="bold"
-                                app:cornerRadius="14dp" />
-                        </LinearLayout>
-                    </com.google.android.material.card.MaterialCardView>
-
                 </LinearLayout>
             </androidx.core.widget.NestedScrollView>
-        </LinearLayout>
+
+            <!-- PINNED BOTTOM CONTAINER WITH VPN CARD AND TOP SHADOW -->
+            <LinearLayout
+                android:id="@+id/bottomPinnedContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:background="#12131A"
+                android:orientation="vertical">
+
+                <!-- Gradient shadow overlay for smooth scrolling fade -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="18dp"
+                    android:background="@drawable/bg_top_shadow_gradient" />
+
+                <!-- VPN TOGGLE CONNECT CARD -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/vpnCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="12dp"
+                    android:layout_marginBottom="8dp"
+                    app:cardBackgroundColor="#1A1B24"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="6dp"
+                    app:strokeColor="#282A38"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="16dp">
+
+                        <View
+                            android:id="@+id/vpnStatusDot"
+                            android:layout_width="12dp"
+                            android:layout_height="12dp"
+                            android:background="@drawable/ic_dot_status_inactive" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/vpnStatusText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Нажмите для подключения"
+                                android:textColor="@android:color/white"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/activeProfileName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:text="Сервер не выбран"
+                                android:textColor="#8E92A8"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/pingBox"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="8dp"
+                            android:background="?android:attr/selectableItemBackground"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="4dp">
+
+                            <TextView
+                                android:id="@+id/pingResult"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="-- ms"
+                                android:textColor="#3A75FF"
+                                android:textSize="12sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/toggleButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="48dp"
+                            android:backgroundTint="#3A75FF"
+                            android:paddingHorizontal="16dp"
+                            android:text="СТАРТ"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="14dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+        </RelativeLayout>
 
         <!-- SCREEN 2: SUBSCRIPTIONS -->
         <FrameLayout
             android:id="@+id/screenSubscriptions"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingBottom="80dp"
             android:visibility="gone">
 
             <androidx.recyclerview.widget.RecyclerView
@@ -465,7 +481,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingVertical="8dp" />
+                android:paddingTop="8dp"
+                android:paddingBottom="80dp" />
 
             <LinearLayout
                 android:id="@+id/emptySubscriptionsLayout"
@@ -506,7 +523,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
-                android:layout_margin="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginBottom="16dp"
                 android:backgroundTint="#3A75FF"
                 android:text="Добавить"
                 android:textColor="@android:color/white"
@@ -935,7 +953,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
                             android:textColor="#8E92A8"
-                            android:textSize="12sp" />
+                            android:textSize="11sp" />
 
                         <TextView
                             android:id="@+id/xrayVersionText"
@@ -943,7 +961,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:textColor="#8E92A8"
-                            android:textSize="12sp" />
+                            android:textSize="11sp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>

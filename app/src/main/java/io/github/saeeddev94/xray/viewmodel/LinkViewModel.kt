@@ -26,7 +26,7 @@ class LinkViewModel(application: Application) : AndroidViewModel(application) {
         linkRepository.update(link)
     }
 
-    fun delete(link: Link) = viewModelScope.launch {
+    suspend fun delete(link: Link) {
         linkRepository.delete(link)
     }
 }

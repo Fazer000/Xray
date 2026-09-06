@@ -11,6 +11,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.saeeddev94.xray.R
 import io.github.saeeddev94.xray.adapter.LinkAdapter
 import io.github.saeeddev94.xray.database.Link
@@ -73,7 +74,14 @@ class LinksActivity : AppCompatActivity() {
     }
 
     private fun deleteLink(link: Link) {
-        val intent = LinksManagerActivity.deleteLink(applicationContext, link)
-        startActivity(intent)
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Удалить подписку?")
+            .setMessage("Подписка \"${link.name.ifBlank { "Подписка #${link.id}" }}\" и все ее сервера будут удалены.")
+            .setNegativeButton("Отмена", null)
+            .setPositiveButton("Удалить") { _, _ ->
+                val intent = LinksManagerActivity.deleteLink(applicationContext, link)
+                startActivity(intent)
+            }
+            .show()
     }
 }
