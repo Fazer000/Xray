@@ -8,7 +8,7 @@ plugins {
 }
 
 val abiId: String = if (project.hasProperty("abiId")) project.property("abiId").toString() else "0"
-val abiTarget: String = if (project.hasProperty("abiTarget")) project.property("abiTarget").toString() else "armeabi-v7a,arm64-v8a,x86,x86_64"
+val abiTarget: String = if (project.hasProperty("abiTarget")) project.property("abiTarget").toString() else "arm64-v8a"
 
 fun calcVersionCode(): Int = file("versionCode.txt").readText().trim().let { versionCode ->
     versionCode.toInt() + abiId.toInt()
@@ -30,8 +30,7 @@ android {
         abi {
             isEnable = true
             reset()
-            val targetAbis = abiTarget.split(",").map { it.trim() }.filter { it.isNotBlank() }
-            include(*targetAbis.toTypedArray())
+            include("arm64-v8a")
             isUniversalApk = false
         }
     }
