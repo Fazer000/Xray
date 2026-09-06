@@ -49,7 +49,23 @@ class ConfigHelper(
                 }
             }
         }
-        base = base.putValue("outbounds", sanitizedOutbounds)
+        
+        val outboundsList = sanitizedOutbounds.toMutableList()
+        val hasDirect = outboundsList.any { (it as? JsonObject)?.get("tag")?.jsonPrimitive?.contentOrNull == "direct" }
+        val hasBlock = outboundsList.any { (it as? JsonObject)?.get("tag")?.jsonPrimitive?.contentOrNull == "block" }
+        if (!hasDirect) {
+            outboundsList.add(buildJsonObject {
+                put("protocol", "freedom")
+                put("tag", "direct")
+            })
+        }
+        if (!hasBlock) {
+            outboundsList.add(buildJsonObject {
+                put("protocol", "blackhole")
+                put("tag", "block")
+            })
+        }
+        base = base.putValue("outbounds", JsonArray(outboundsList))
 
         val dnsObj = JsonHelper.getObject(base, "dns")
         val dnsMap = dnsObj.toMutableMap()
@@ -107,10 +123,99 @@ class ConfigHelper(
 
         base = base.putValue("dns", JsonObject(dnsMap))
 
+        val geoIpFile = java.io.File(settings.context.filesDir, "geoip.dat")
+        val geoSiteFile = java.io.File(settings.context.filesDir, "geosite.dat")
+
+        if (geoIpFile.exists() && geoIpFile.length() < 100000L) {
+            runCatching { geoIpFile.delete() }
+        }
+        if (geoSiteFile.exists() && geoSiteFile.length() < 100000L) {
+            runCatching { geoSiteFile.delete() }
+        }
+
+        val hasValidGeoIp = geoIpFile.exists() && geoIpFile.length() >= 100000L
+        val hasValidGeoSite = geoSiteFile.exists() && geoSiteFile.length() >= 100000L
+
+        val privateCidrs = listOf(
+            "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",
+            "127.0.0.0/8", "169.254.0.0/16", "fc00::/7", "fe80::/10", "::1/128"
+        )
+
         val routingObj = JsonHelper.getObject(base, "routing")
-        if (!routingObj.containsKey("domainStrategy")) {
+        val rulesArray = routingObj["rules"] as? JsonArray
+        if (rulesArray != null) {
+            val sanitizedRules = buildJsonArray {
+                for (ruleElem in rulesArray) {
+                    val ruleObj = ruleElem as? JsonObject ?: continue
+                    val ruleMap = ruleObj.toMutableMap()
+
+                    val ipArray = ruleObj["ip"] as? JsonArray
+                    if (ipArray != null) {
+                        val newIpList = mutableListOf<kotlinx.serialization.json.JsonElement>()
+                        for (ipElem in ipArray) {
+                            val ipStr = ipElem.jsonPrimitive.contentOrNull ?: ""
+                            if (ipStr.equals("geoip:private", ignoreCase = true)) {
+                                privateCidrs.forEach { cidr -> newIpList.add(JsonPrimitive(cidr)) }
+                            } else if (ipStr.startsWith("geoip:", ignoreCase = true)) {
+                                if (hasValidGeoIp) {
+                                    newIpList.add(ipElem)
+                                }
+                            } else {
+                                newIpList.add(ipElem)
+                            }
+                        }
+                        if (newIpList.isNotEmpty()) {
+                            ruleMap["ip"] = JsonArray(newIpList)
+                        } else {
+                            ruleMap.remove("ip")
+                        }
+                    }
+
+                    val domainArray = ruleObj["domain"] as? JsonArray
+                    if (domainArray != null) {
+                        val newDomainList = mutableListOf<kotlinx.serialization.json.JsonElement>()
+                        for (domainElem in domainArray) {
+                            val domainStr = domainElem.jsonPrimitive.contentOrNull ?: ""
+                            if (domainStr.startsWith("geosite:", ignoreCase = true)) {
+                                if (hasValidGeoSite) {
+                                    newDomainList.add(domainElem)
+                                }
+                            } else {
+                                newDomainList.add(domainElem)
+                            }
+                        }
+                        if (newDomainList.isNotEmpty()) {
+                            ruleMap["domain"] = JsonArray(newDomainList)
+                        } else {
+                            ruleMap.remove("domain")
+                        }
+                    }
+
+                    val hasCriteria = ruleMap.containsKey("ip") ||
+                            ruleMap.containsKey("domain") ||
+                            ruleMap.containsKey("port") ||
+                            ruleMap.containsKey("network") ||
+                            ruleMap.containsKey("protocol") ||
+                            ruleMap.containsKey("inboundTag") ||
+                            ruleMap.containsKey("user") ||
+                            ruleMap.containsKey("balancerTag")
+
+                    if (hasCriteria) {
+                        add(JsonObject(ruleMap))
+                    }
+                }
+            }
             val routingMap = routingObj.toMutableMap()
-            routingMap["domainStrategy"] = kotlinx.serialization.json.JsonPrimitive("IPIfNonMatch")
+            routingMap["rules"] = sanitizedRules
+            if (!routingMap.containsKey("domainStrategy")) {
+                routingMap["domainStrategy"] = JsonPrimitive("IPIfNonMatch")
+            }
+            base = base.putValue("routing", JsonObject(routingMap))
+        } else {
+            val routingMap = routingObj.toMutableMap()
+            if (!routingMap.containsKey("domainStrategy")) {
+                routingMap["domainStrategy"] = JsonPrimitive("IPIfNonMatch")
+            }
             base = base.putValue("routing", JsonObject(routingMap))
         }
     }

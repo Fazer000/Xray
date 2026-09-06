@@ -383,7 +383,14 @@ class LinkHelper(
             put(
                 "ip",
                 buildJsonArray {
-                    add(JsonPrimitive("geoip:private"))
+                    add(JsonPrimitive("10.0.0.0/8"))
+                    add(JsonPrimitive("172.16.0.0/12"))
+                    add(JsonPrimitive("192.168.0.0/16"))
+                    add(JsonPrimitive("127.0.0.0/8"))
+                    add(JsonPrimitive("169.254.0.0/16"))
+                    add(JsonPrimitive("fc00::/7"))
+                    add(JsonPrimitive("fe80::/10"))
+                    add(JsonPrimitive("::1/128"))
                 }
             )
             put("outboundTag", "direct")

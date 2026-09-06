@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         Link::class,
         Profile::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 @TypeConverters(
@@ -100,6 +100,18 @@ abstract class XrayDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE links ADD COLUMN upload INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE links ADD COLUMN download INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE links ADD COLUMN total INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE links ADD COLUMN expire INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE links ADD COLUMN announcement TEXT")
+                db.execSQL("ALTER TABLE links ADD COLUMN site_url TEXT")
+                db.execSQL("ALTER TABLE links ADD COLUMN support_url TEXT")
+            }
+        }
+
         @Volatile
         private var db: XrayDatabase? = null
 
@@ -111,12 +123,15 @@ abstract class XrayDatabase : RoomDatabase() {
                             MIGRATION_1_2,
                             MIGRATION_2_3,
                             MIGRATION_3_4,
+                            MIGRATION_4_5,
                         )
                         db = Room.databaseBuilder(
                             context.applicationContext,
                             XrayDatabase::class.java,
                             "xray"
-                        ).addMigrations(*migrations).build()
+                        ).addMigrations(*migrations)
+                            .fallbackToDestructiveMigrationOnDowngrade()
+                            .build()
                     }
                 }
             }

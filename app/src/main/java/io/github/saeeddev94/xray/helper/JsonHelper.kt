@@ -65,10 +65,6 @@ object JsonHelper {
             result = result.putValue("streamSettings", sanitizedStream)
         }
 
-        if (XhttpMigrationHelper.canMigrate(result)) {
-            result = XhttpMigrationHelper.migrateOutbound(result)
-        }
-
         val mux = result["mux"] as? JsonObject
         if (mux != null && (mux["enabled"]?.jsonPrimitive?.contentOrNull == "true" || mux["enabled"]?.jsonPrimitive?.booleanOrNull == true)) {
             val disabledMux = mux.putValue("enabled", JsonPrimitive(false))

@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primaryColor">#10B981</color>
-    <color name="primaryDark">#0F172A</color>
-    <color name="surfaceDark">#1E293B</color>
-    <color name="backgroundDark">#090D16</color>
-    <color name="strokeDark">#334155</color>
+    <color name="primaryColor">#3A75FF</color>
+    <color name="primaryDark">#161720</color>
+    <color name="surfaceDark">#1C1D26</color>
+    <color name="backgroundDark">#12131A</color>
+    <color name="strokeDark">#2A2C3A</color>
     <color name="textPrimary">#FFFFFF</color>
-    <color name="textSecondary">#94A3B8</color>
-    <color name="accentBlue">#3B82F6</color>
+    <color name="textSecondary">#8E92A8</color>
+    <color name="accentBlue">#3A75FF</color>
     <color name="accentRed">#EF4444</color>
-    <color name="btnColor">#10B981</color>
-    <color name="btnColorDisabled">#334155</color>
+    <color name="accentGreen">#22C55E</color>
+    <color name="accentAmber">#F59E0B</color>
+    <color name="btnColor">#3A75FF</color>
+    <color name="btnColorDisabled">#2A2C3A</color>
+    
+    <!-- INCY badges -->
+    <color name="badge_vless_bg">#1E2A4A</color>
+    <color name="badge_vless_text">#60A5FA</color>
+    <color name="badge_json_bg">#362B16</color>
+    <color name="badge_json_text">#FBBF24</color>
+    <color name="badge_transport_bg">#232533</color>
+    <color name="badge_transport_text">#9CA3AF</color>
 </resources>

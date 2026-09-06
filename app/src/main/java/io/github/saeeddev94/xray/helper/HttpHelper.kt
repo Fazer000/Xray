@@ -15,6 +15,14 @@ import java.net.URL
 import java.util.Locale
 import java.util.zip.GZIPInputStream
 
+data class SubscriptionResponse(
+    val body: String,
+    val userInfo: String? = null,
+    val profileTitle: String? = null,
+    val profileWebPageUrl: String? = null,
+    val announcement: String? = null,
+)
+
 class HttpHelper(
     val scope: CoroutineScope,
     val settings: Settings,
@@ -56,7 +64,11 @@ class HttpHelper(
             return connection
         }
 
-        suspend fun get(link: String, userAgent: String? = null, hardwareId: String? = null): String {
+        suspend fun getSubscriptionData(
+            link: String,
+            userAgent: String? = null,
+            hardwareId: String? = null,
+        ): SubscriptionResponse {
             return withContext(Dispatchers.IO) {
                 val connection = getConnection(
                     link,
@@ -64,9 +76,24 @@ class HttpHelper(
                     hardwareId = hardwareId,
                 )
                 var responseCode = 0
+                var userInfo: String? = null
+                var profileTitle: String? = null
+                var profileWebPageUrl: String? = null
+                var announcement: String? = null
+
                 val responseBody = try {
                     connection.connect()
                     responseCode = connection.responseCode
+                    userInfo = connection.getHeaderField("subscription-userinfo")
+                        ?: connection.getHeaderField("Subscription-Userinfo")
+                        ?: connection.getHeaderField("user-info")
+                    profileTitle = connection.getHeaderField("profile-title")
+                        ?: connection.getHeaderField("Profile-Title")
+                    profileWebPageUrl = connection.getHeaderField("profile-web-page-url")
+                        ?: connection.getHeaderField("Profile-Web-Page-Url")
+                    announcement = connection.getHeaderField("announcement")
+                        ?: connection.getHeaderField("profile-update-interval")
+
                     val rawStream = connection.inputStream
                     val isGzip = "gzip".equals(connection.contentEncoding, ignoreCase = true)
                     val stream = if (isGzip) GZIPInputStream(rawStream) else rawStream
@@ -79,8 +106,18 @@ class HttpHelper(
                 if (responseCode != HttpURLConnection.HTTP_OK || responseBody == null) {
                     throw Exception("HTTP Error: $responseCode")
                 }
-                responseBody
+                SubscriptionResponse(
+                    body = responseBody,
+                    userInfo = userInfo,
+                    profileTitle = profileTitle,
+                    profileWebPageUrl = profileWebPageUrl,
+                    announcement = announcement,
+                )
             }
+        }
+
+        suspend fun get(link: String, userAgent: String? = null, hardwareId: String? = null): String {
+            return getSubscriptionData(link, userAgent, hardwareId).body
         }
     }
 

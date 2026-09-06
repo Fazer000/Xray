@@ -113,7 +113,29 @@ class LinksManagerActivity : AppCompatActivity() {
                 runCatching {
                     val hardwareId = settings.hardwareId && !settings.hardwareIdHeader.isNullOrBlank()
                     val hardwareIdHeader = if (hardwareId) settings.hardwareIdHeader else null
-                    val content = HttpHelper.get(link.address, link.userAgent, hardwareIdHeader).trim()
+                    val res = HttpHelper.getSubscriptionData(link.address, link.userAgent, hardwareIdHeader)
+
+                    if (!res.userInfo.isNullOrBlank()) {
+                        res.userInfo.split(";").forEach { part ->
+                            val kv = part.trim().split("=")
+                            if (kv.size == 2) {
+                                val v = kv[1].trim().toLongOrNull() ?: 0L
+                                when (kv[0].trim().lowercase()) {
+                                    "upload" -> link.upload = v
+                                    "download" -> link.download = v
+                                    "total" -> link.total = v
+                                    "expire" -> link.expire = v
+                                }
+                            }
+                        }
+                    }
+                    if (!res.announcement.isNullOrBlank()) link.announcement = res.announcement
+                    if (!res.profileWebPageUrl.isNullOrBlank()) link.siteUrl = res.profileWebPageUrl
+                    if (!res.profileTitle.isNullOrBlank() && (link.name.isBlank() || link.name == "Subscription")) link.name = res.profileTitle
+
+                    linkViewModel.update(link)
+
+                    val content = res.body.trim()
                     val newProfiles = if (link.type == Link.Type.Json) {
                         jsonProfiles(link, content)
                     } else {
@@ -422,7 +444,14 @@ class LinksManagerActivity : AppCompatActivity() {
                 })
                 add(buildJsonObject {
                     put("ip", buildJsonArray {
-                        add(JsonPrimitive("geoip:private"))
+                        add(JsonPrimitive("10.0.0.0/8"))
+                        add(JsonPrimitive("172.16.0.0/12"))
+                        add(JsonPrimitive("192.168.0.0/16"))
+                        add(JsonPrimitive("127.0.0.0/8"))
+                        add(JsonPrimitive("169.254.0.0/16"))
+                        add(JsonPrimitive("fc00::/7"))
+                        add(JsonPrimitive("fe80::/10"))
+                        add(JsonPrimitive("::1/128"))
                     })
                     put("outboundTag", JsonPrimitive("direct"))
                 })

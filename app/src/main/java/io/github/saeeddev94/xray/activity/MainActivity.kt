@@ -8,18 +8,23 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -31,6 +36,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import io.github.saeeddev94.xray.BuildConfig
@@ -41,6 +47,7 @@ import io.github.saeeddev94.xray.adapter.ProfileAdapter
 import io.github.saeeddev94.xray.database.Link
 import io.github.saeeddev94.xray.databinding.ActivityMainBinding
 import io.github.saeeddev94.xray.dto.ProfileList
+import io.github.saeeddev94.xray.helper.FormatHelper
 import io.github.saeeddev94.xray.helper.HttpHelper
 import io.github.saeeddev94.xray.helper.LinkHelper
 import io.github.saeeddev94.xray.helper.ProfileTouchHelper
@@ -68,6 +75,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var profileAdapter: ProfileAdapter
     private val linkAdapter by lazy { LinkAdapter() }
     private lateinit var tabs: List<Link>
+    private var currentLinksList: List<Link> = emptyList()
     private val profilesRecyclerView by lazy { findViewById<RecyclerView>(R.id.profilesRecyclerView) }
     private val profiles = arrayListOf<ProfileList>()
 
@@ -115,6 +123,7 @@ class MainActivity : AppCompatActivity() {
             if (tab == null) return
             settings.selectedLink = tab.tag.toString().toLong()
             profileViewModel.next(settings.selectedLink)
+            updateProviderCardData(currentLinksList)
         }
 
         override fun onTabUnselected(tab: TabLayout.Tab?) {}
@@ -130,7 +139,6 @@ class MainActivity : AppCompatActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             binding.appBarLayout.setPadding(0, systemBars.top, 0, 0)
-            binding.bottomNav.setPadding(0, 0, 0, systemBars.bottom)
             insets
         }
 
@@ -148,41 +156,111 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation() {
-        binding.bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_servers -> {
-                    binding.screenServers.isVisible = true
-                    binding.screenSubscriptions.isVisible = false
-                    binding.screenSettings.isVisible = false
-                    title = "Сервера"
-                    invalidateOptionsMenu()
-                    true
-                }
-                R.id.nav_subscriptions -> {
-                    binding.screenServers.isVisible = false
-                    binding.screenSubscriptions.isVisible = true
-                    binding.screenSettings.isVisible = false
-                    title = "Подписки"
-                    invalidateOptionsMenu()
-                    true
-                }
-                R.id.nav_settings -> {
-                    binding.screenServers.isVisible = false
-                    binding.screenSubscriptions.isVisible = false
-                    binding.screenSettings.isVisible = true
-                    title = "Настройки"
-                    invalidateOptionsMenu()
-                    true
-                }
-                else -> false
+        val navServers = findViewById<LinearLayout>(R.id.navItemServers)
+        val navSubscriptions = findViewById<LinearLayout>(R.id.navItemSubscriptions)
+        val navSettings = findViewById<LinearLayout>(R.id.navItemSettings)
+
+        val iconServers = findViewById<ImageView>(R.id.navIconServers)
+        val textServers = findViewById<TextView>(R.id.navTextServers)
+
+        val iconSubs = findViewById<ImageView>(R.id.navIconSubscriptions)
+        val textSubs = findViewById<TextView>(R.id.navTextSubscriptions)
+
+        val iconSettings = findViewById<ImageView>(R.id.navIconSettings)
+        val textSettings = findViewById<TextView>(R.id.navTextSettings)
+
+        val indicator = findViewById<View>(R.id.navLiquidIndicator)
+
+        fun selectTab(position: Int) {
+            val colorActive = Color.parseColor("#3A75FF")
+            val colorInactive = Color.parseColor("#8E92A8")
+
+            iconServers.imageTintList = ColorStateList.valueOf(if (position == 0) colorActive else colorInactive)
+            textServers.setTextColor(if (position == 0) colorActive else colorInactive)
+
+            iconSubs.imageTintList = ColorStateList.valueOf(if (position == 1) colorActive else colorInactive)
+            textSubs.setTextColor(if (position == 1) colorActive else colorInactive)
+
+            iconSettings.imageTintList = ColorStateList.valueOf(if (position == 2) colorActive else colorInactive)
+            textSettings.setTextColor(if (position == 2) colorActive else colorInactive)
+
+            binding.screenServers.isVisible = (position == 0)
+            binding.screenSubscriptions.isVisible = (position == 1)
+            binding.screenSettings.isVisible = (position == 2)
+
+            val floatingDock = findViewById<MaterialCardView>(R.id.floatingNavCard)
+            val dockWidth = floatingDock.width.takeIf { it > 0 } ?: (resources.displayMetrics.widthPixels - (40 * resources.displayMetrics.density).toInt())
+            val itemWidth = dockWidth / 3f
+            val targetX = position * itemWidth + (itemWidth - indicator.width) / 2f
+
+            indicator.animate()
+                .translationX(targetX)
+                .setDuration(220)
+                .start()
+
+            title = when (position) {
+                0 -> "XRAY"
+                1 -> "Подписки"
+                else -> "Настройки"
             }
+            invalidateOptionsMenu()
         }
-        title = "Сервера"
+
+        navServers.setOnClickListener { selectTab(0) }
+        navSubscriptions.setOnClickListener { selectTab(1) }
+        navSettings.setOnClickListener { selectTab(2) }
+
+        indicator.post {
+            val floatingDock = findViewById<MaterialCardView>(R.id.floatingNavCard)
+            val dockWidth = floatingDock.width.takeIf { it > 0 } ?: (resources.displayMetrics.widthPixels - (40 * resources.displayMetrics.density).toInt())
+            val itemWidth = dockWidth / 3f
+            indicator.layoutParams.width = (itemWidth * 0.85f).toInt()
+            indicator.requestLayout()
+            indicator.translationX = (itemWidth - indicator.width) / 2f
+        }
+
+        title = "XRAY"
     }
 
     private fun setupServersTab() {
         binding.toggleButton.setOnClickListener { onToggleButtonClick() }
         binding.pingBox.setOnClickListener { ping() }
+
+        // Quick Action Buttons
+        findViewById<TextView>(R.id.btnAddSub)?.setOnClickListener { openLink() }
+        findViewById<TextView>(R.id.btnPasteClipboard)?.setOnClickListener {
+            runCatching {
+                clipboardManager.primaryClip!!.getItemAt(0).text.toString().trim()
+            }.getOrNull()?.let { processLink(it) }
+        }
+        findViewById<TextView>(R.id.btnScanQrCode)?.setOnClickListener {
+            cameraPermission.launch(android.Manifest.permission.CAMERA)
+        }
+
+        // Provider Card Refresh & Buttons
+        findViewById<ImageView>(R.id.providerRefreshBtn)?.setOnClickListener { refreshLinks() }
+        findViewById<ImageView>(R.id.providerShareBtn)?.setOnClickListener {
+            val link = currentLinksList.firstOrNull()
+            if (link != null) {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, link.address)
+                }
+                startActivity(Intent.createChooser(intent, "Поделиться подпиской"))
+            }
+        }
+
+        findViewById<TextView>(R.id.btnSupport)?.setOnClickListener {
+            val link = currentLinksList.firstOrNull()
+            val url = if (!link?.supportUrl.isNullOrBlank()) link!!.supportUrl else "https://t.me/support"
+            runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+        }
+
+        findViewById<TextView>(R.id.btnSite)?.setOnClickListener {
+            val link = currentLinksList.firstOrNull()
+            val url = if (!link?.siteUrl.isNullOrBlank()) link!!.siteUrl else "https://google.com"
+            runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+        }
 
         profileAdapter = ProfileAdapter(
             lifecycleScope,
@@ -219,6 +297,40 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                linkViewModel.links.collectLatest { linksList ->
+                    updateProviderCardData(linksList)
+                }
+            }
+        }
+    }
+
+    private fun updateProviderCardData(links: List<Link>) {
+        currentLinksList = links
+        val activeLink = links.firstOrNull { it.id == settings.selectedLink } ?: links.firstOrNull()
+        if (activeLink != null) {
+            findViewById<TextView>(R.id.providerName)?.text = activeLink.name.ifBlank { "VPNHUB" }
+            findViewById<TextView>(R.id.providerExpireBadge)?.text = FormatHelper.formatExpiration(activeLink.expire)
+            findViewById<TextView>(R.id.providerTrafficValue)?.text = FormatHelper.formatTrafficUsage(activeLink.upload, activeLink.download, activeLink.total)
+            findViewById<ProgressBar>(R.id.providerTrafficProgress)?.progress = FormatHelper.calculateTrafficProgress(activeLink.upload, activeLink.download, activeLink.total)
+            findViewById<TextView>(R.id.providerAnnouncement)?.apply {
+                if (!activeLink.announcement.isNullOrBlank()) {
+                    text = activeLink.announcement
+                    isVisible = true
+                } else {
+                    text = "👉 Актуальные новости проекта и поддержка в личном кабинете"
+                    isVisible = true
+                }
+            }
+        } else {
+            findViewById<TextView>(R.id.providerName)?.text = "Провайдер не выбран"
+            findViewById<TextView>(R.id.providerExpireBadge)?.text = "Бессрочно"
+            findViewById<TextView>(R.id.providerTrafficValue)?.text = "0 B / ∞"
+            findViewById<ProgressBar>(R.id.providerTrafficProgress)?.progress = 0
+        }
+        val lastRefresh = FormatHelper.formatDate(settings.lastRefreshLinks)
+        findViewById<TextView>(R.id.providerMetaFooter)?.text = if (lastRefresh.isNotBlank()) "$lastRefresh · ${profiles.size} ☰" else "${profiles.size} серверов"
     }
 
     private fun setupSubscriptionsTab() {
@@ -334,7 +446,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun tabsList(list: List<Link>): List<Link> {
         tabs = list
-        return listOf(Link(name = "All")) + tabs
+        return listOf(Link(name = "Все")) + tabs
     }
 
     private fun tabsIndex(list: List<Link>): Int {
@@ -363,6 +475,7 @@ class MainActivity : AppCompatActivity() {
         @Suppress("NotifyDataSetChanged")
         profileAdapter.notifyDataSetChanged()
         updateActiveProfileName()
+        updateProviderCardData(currentLinksList)
     }
 
     private fun updateActiveProfileName() {
@@ -398,9 +511,9 @@ class MainActivity : AppCompatActivity() {
     private fun vpnStopStatus() {
         isRunning = false
         binding.vpnStatusDot.setBackgroundResource(R.drawable.ic_dot_status_inactive)
-        binding.vpnStatusText.text = "Отключено"
+        binding.vpnStatusText.text = "Нажмите для подключения"
         binding.toggleButton.text = getString(R.string.vpnStart)
-        binding.toggleButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#2563EB"))
+        binding.toggleButton.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#3A75FF"))
         binding.pingResult.text = getString(R.string.pingNotConnected)
     }
 

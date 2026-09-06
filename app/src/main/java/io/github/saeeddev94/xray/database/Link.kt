@@ -23,6 +23,20 @@ data class Link(
     var isActive: Boolean = false,
     @ColumnInfo(name = "user_agent")
     var userAgent: String? = null,
+    @ColumnInfo(name = "upload", defaultValue = "0")
+    var upload: Long = 0L,
+    @ColumnInfo(name = "download", defaultValue = "0")
+    var download: Long = 0L,
+    @ColumnInfo(name = "total", defaultValue = "0")
+    var total: Long = 0L,
+    @ColumnInfo(name = "expire", defaultValue = "0")
+    var expire: Long = 0L,
+    @ColumnInfo(name = "announcement")
+    var announcement: String? = null,
+    @ColumnInfo(name = "site_url")
+    var siteUrl: String? = null,
+    @ColumnInfo(name = "support_url")
+    var supportUrl: String? = null,
 ) : Parcelable {
     enum class Type(val value: Int) {
         Json(0),

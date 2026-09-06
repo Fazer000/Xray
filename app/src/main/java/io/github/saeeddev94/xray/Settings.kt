@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.core.content.edit
 import java.io.File
 
-class Settings(private val context: Context) {
+class Settings(val context: Context) {
 
     private val sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 

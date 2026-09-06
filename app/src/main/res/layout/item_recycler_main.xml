@@ -5,31 +5,47 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="12dp"
-    android:layout_marginVertical="5dp"
+    android:layout_marginVertical="4dp"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground"
-    app:cardBackgroundColor="#1E293B"
+    app:cardBackgroundColor="#1A1B24"
     app:cardCornerRadius="16dp"
     app:cardElevation="2dp"
-    app:strokeColor="#334155"
+    app:strokeColor="#282A38"
     app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:minHeight="72dp"
+        android:minHeight="68dp"
         android:orientation="horizontal"
         android:paddingHorizontal="14dp"
         android:paddingVertical="10dp">
 
-        <View
-            android:id="@+id/activeIndicator"
-            android:layout_width="12dp"
-            android:layout_height="12dp"
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:layout_marginEnd="12dp"
-            android:background="@drawable/ic_dot_status_inactive" />
+            android:background="@drawable/bg_server_icon_box">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_globe"
+                app:tint="#3A75FF" />
+
+            <View
+                android:id="@+id/activeIndicator"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="2dp"
+                android:layout_marginEnd="2dp"
+                android:background="@drawable/ic_dot_status_inactive" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -42,21 +58,56 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
-                android:maxLines="2"
+                android:maxLines="1"
                 android:textColor="@android:color/white"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/profileAddress"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="#94A3B8"
-                android:textSize="12sp"
-                android:visibility="gone" />
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/badgeProtocol"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge_vless"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:text="VLESS"
+                    android:textColor="#60A5FA"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/badgeFormat"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/bg_badge_json"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:text="JSON"
+                    android:textColor="#FBBF24"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/profileAddress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:background="@drawable/bg_badge_transport"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:textColor="#9CA3AF"
+                    android:textSize="10sp" />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -69,46 +120,46 @@
                 android:id="@+id/profilePingBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="4dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:clickable="true"
                 android:focusable="true"
                 android:paddingHorizontal="8dp"
                 android:paddingVertical="4dp"
                 android:text="⚡️ -"
-                android:textColor="#38BDF8"
-                android:textSize="12sp"
+                android:textColor="#3A75FF"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <LinearLayout
                 android:id="@+id/profileEdit"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:contentDescription="@string/editIcon"
                     android:src="@drawable/baseline_edit"
-                    app:tint="#94A3B8" />
+                    app:tint="#8E92A8" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/profileDelete"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:contentDescription="@string/deleteIcon"
                     android:src="@drawable/baseline_delete"
                     app:tint="#EF4444" />

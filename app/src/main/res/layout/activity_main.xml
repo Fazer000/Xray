@@ -4,22 +4,24 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#090D16"
+    android:background="#12131A"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
     tools:context=".activity.MainActivity">
 
+    <!-- TOP TOOLBAR -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#0F172A"
+        android:background="#12131A"
         app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            app:title="XRAY v3.5.8"
             app:titleTextColor="@android:color/white" />
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -29,7 +31,7 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- SCREEN 1: SERVERS -->
+        <!-- SCREEN 1: SERVERS (INCY PROVIDER + SERVERS LIST) -->
         <LinearLayout
             android:id="@+id/screenServers"
             android:layout_width="match_parent"
@@ -37,116 +39,417 @@
             android:orientation="vertical"
             android:visibility="visible">
 
-            <com.google.android.material.tabs.TabLayout
-                android:id="@+id/linksTab"
+            <androidx.core.widget.NestedScrollView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#0F172A"
-                android:paddingHorizontal="4dp"
-                app:tabIndicatorColor="#10B981"
-                app:tabMode="scrollable"
-                app:tabSelectedTextColor="#10B981"
-                app:tabTextColor="#94A3B8" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/profilesRecyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:clipToPadding="false"
-                android:paddingVertical="6dp" />
-
-            <!-- FLOATING VPN CONNECTION CARD -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/vpnCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="12dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="8dp"
-                app:cardBackgroundColor="#1E293B"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="8dp"
-                app:strokeColor="#334155"
-                app:strokeWidth="1dp">
+                android:layout_height="match_parent"
+                android:fillViewport="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:paddingBottom="80dp">
 
+                    <!-- SECTION LABEL: ТЕКУЩИЙ ПРОВАЙДЕР -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="6dp"
+                        android:text="ТЕКУЩИЙ ПРОВАЙДЕР"
+                        android:textColor="#8E92A8"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <!-- PROVIDER SUMMARY CARD (INCY STYLE) -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/providerCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="12dp"
+                        android:layout_marginBottom="12dp"
+                        app:cardBackgroundColor="#1A1B24"
+                        app:cardCornerRadius="18dp"
+                        app:cardElevation="3dp"
+                        app:strokeColor="#282A38"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <!-- Header Row -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <ImageView
+                                    android:layout_width="16dp"
+                                    android:layout_height="16dp"
+                                    android:src="@drawable/ic_chevron_right"
+                                    app:tint="#8E92A8" />
+
+                                <View
+                                    android:id="@+id/providerStatusDot"
+                                    android:layout_width="8dp"
+                                    android:layout_height="8dp"
+                                    android:layout_marginStart="6dp"
+                                    android:background="@drawable/ic_dot_status_active" />
+
+                                <TextView
+                                    android:id="@+id/providerName"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="8dp"
+                                    android:layout_weight="1"
+                                    android:ellipsize="end"
+                                    android:maxLines="1"
+                                    android:text="VPNHUB"
+                                    android:textColor="@android:color/white"
+                                    android:textSize="17sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/providerExpireBadge"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginEnd="8dp"
+                                    android:background="@drawable/bg_action_pill"
+                                    android:paddingHorizontal="8dp"
+                                    android:paddingVertical="3dp"
+                                    android:text="Осталось 22 дн."
+                                    android:textColor="#3A75FF"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+
+                                <ImageView
+                                    android:id="@+id/providerRefreshBtn"
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:padding="4dp"
+                                    android:src="@drawable/baseline_refresh"
+                                    app:tint="#8E92A8" />
+
+                                <ImageView
+                                    android:id="@+id/providerShareBtn"
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:layout_marginStart="4dp"
+                                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:padding="4dp"
+                                    android:src="@drawable/ic_share"
+                                    app:tint="#8E92A8" />
+
+                                <ImageView
+                                    android:id="@+id/providerMenuBtn"
+                                    android:layout_width="28dp"
+                                    android:layout_height="28dp"
+                                    android:layout_marginStart="4dp"
+                                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:padding="4dp"
+                                    android:src="@drawable/ic_more_vert"
+                                    app:tint="#8E92A8" />
+                            </LinearLayout>
+
+                            <!-- Traffic Progress Row -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:orientation="vertical">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+
+                                    <TextView
+                                        android:id="@+id/providerTrafficLabel"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:text="Использовано трафика"
+                                        android:textColor="#8E92A8"
+                                        android:textSize="12sp" />
+
+                                    <TextView
+                                        android:id="@+id/providerTrafficValue"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="249.47 GB / ∞"
+                                        android:textColor="@android:color/white"
+                                        android:textSize="12sp"
+                                        android:textStyle="bold" />
+                                </LinearLayout>
+
+                                <ProgressBar
+                                    android:id="@+id/providerTrafficProgress"
+                                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="6dp"
+                                    android:layout_marginTop="6dp"
+                                    android:progress="25"
+                                    android:progressTint="#3A75FF" />
+                            </LinearLayout>
+
+                            <!-- Announcement Text Box -->
+                            <TextView
+                                android:id="@+id/providerAnnouncement"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:background="@drawable/bg_action_pill"
+                                android:padding="10dp"
+                                android:text="👉 Актуальные новости проекта: @vpnhub\nПоддержка: @vpnhub_help"
+                                android:textColor="#8E92A8"
+                                android:textSize="12sp" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:text="Серверы для обхода глушения расположены снизу"
+                                android:textColor="#8E92A8"
+                                android:textSize="12sp" />
+
+                            <!-- Action Buttons Row -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/btnSupport"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginEnd="6dp"
+                                    android:layout_weight="1"
+                                    android:background="@drawable/bg_action_pill"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:gravity="center"
+                                    android:paddingVertical="8dp"
+                                    android:text="Поддержка"
+                                    android:textColor="@android:color/white"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/btnSite"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="6dp"
+                                    android:layout_weight="1"
+                                    android:background="@drawable/bg_action_pill"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:gravity="center"
+                                    android:paddingVertical="8dp"
+                                    android:text="Сайт"
+                                    android:textColor="@android:color/white"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <!-- Date / Counter Footer -->
+                            <TextView
+                                android:id="@+id/providerMetaFooter"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:gravity="end"
+                                android:text="06.09.26, 10:45 · 3 ☰"
+                                android:textColor="#8E92A8"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- QUICK ACTION BUTTONS -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
+                        android:layout_marginHorizontal="12dp"
+                        android:layout_marginBottom="12dp"
                         android:orientation="horizontal">
 
-                        <View
-                            android:id="@+id/vpnStatusDot"
-                            android:layout_width="12dp"
-                            android:layout_height="12dp"
-                            android:background="@drawable/ic_dot_status_inactive" />
-
                         <TextView
-                            android:id="@+id/vpnStatusText"
+                            android:id="@+id/btnAddSub"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp"
+                            android:layout_marginEnd="4dp"
                             android:layout_weight="1"
-                            android:text="Отключено"
-                            android:textColor="@android:color/white"
-                            android:textSize="15sp"
-                            android:textStyle="bold" />
-
-                        <LinearLayout
-                            android:id="@+id/pingBox"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="?android:attr/selectableItemBackground"
+                            android:background="@drawable/bg_action_pill"
                             android:clickable="true"
                             android:focusable="true"
                             android:gravity="center"
-                            android:paddingHorizontal="10dp"
-                            android:paddingVertical="4dp">
+                            android:paddingVertical="10dp"
+                            android:text="+ Добавить"
+                            android:textColor="@android:color/white"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
 
-                            <TextView
-                                android:id="@+id/pingResult"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="⚡️ -- ms"
-                                android:textColor="#94A3B8"
-                                android:textSize="13sp" />
-                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/btnPasteClipboard"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_action_pill"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingVertical="10dp"
+                            android:text="📋 Вставить"
+                            android:textColor="@android:color/white"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/btnScanQrCode"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_action_pill"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingVertical="10dp"
+                            android:text="📷 QR"
+                            android:textColor="@android:color/white"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
                     </LinearLayout>
 
-                    <TextView
-                        android:id="@+id/activeProfileName"
+                    <!-- M3 SUBSCRIPTION FILTER TABS -->
+                    <com.google.android.material.tabs.TabLayout
+                        android:id="@+id/linksTab"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:layout_marginBottom="12dp"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:text="Выберите сервер"
-                        android:textColor="#94A3B8"
-                        android:textSize="13sp" />
+                        android:layout_marginHorizontal="12dp"
+                        android:layout_marginBottom="8dp"
+                        android:background="@android:color/transparent"
+                        app:tabBackground="@drawable/bg_action_pill"
+                        app:tabIndicatorColor="#3A75FF"
+                        app:tabIndicatorHeight="3dp"
+                        app:tabMode="scrollable"
+                        app:tabRippleColor="#203A75FF"
+                        app:tabSelectedTextColor="#3A75FF"
+                        app:tabTextColor="#8E92A8" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/toggleButton"
+                    <!-- SERVERS RECYCLER VIEW -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/profilesRecyclerView"
                         android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:backgroundTint="#2563EB"
-                        android:text="@string/vpnStart"
-                        android:textColor="@android:color/white"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        app:cornerRadius="16dp"
-                        app:icon="@drawable/baseline_vpn_lock"
-                        app:iconGravity="textStart"
-                        app:iconPadding="8dp" />
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+
+                    <!-- VPN TOGGLE CONNECT CARD -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/vpnCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="12dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="12dp"
+                        app:cardBackgroundColor="#1A1B24"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="4dp"
+                        app:strokeColor="#282A38"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="16dp">
+
+                            <View
+                                android:id="@+id/vpnStatusDot"
+                                android:layout_width="12dp"
+                                android:layout_height="12dp"
+                                android:background="@drawable/ic_dot_status_inactive" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/vpnStatusText"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Нажмите для подключения"
+                                    android:textColor="@android:color/white"
+                                    android:textSize="15sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/activeProfileName"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:ellipsize="end"
+                                    android:maxLines="1"
+                                    android:text="Сервер не выбран"
+                                    android:textColor="#8E92A8"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:id="@+id/pingBox"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="8dp"
+                                android:background="?android:attr/selectableItemBackground"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingHorizontal="8dp"
+                                android:paddingVertical="4dp">
+
+                                <TextView
+                                    android:id="@+id/pingResult"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="⚡️ -- ms"
+                                    android:textColor="#3A75FF"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/toggleButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:backgroundTint="#3A75FF"
+                                android:paddingHorizontal="16dp"
+                                android:text="СТАРТ"
+                                android:textColor="@android:color/white"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                app:cornerRadius="14dp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </androidx.core.widget.NestedScrollView>
         </LinearLayout>
 
         <!-- SCREEN 2: SUBSCRIPTIONS -->
@@ -154,6 +457,7 @@
             android:id="@+id/screenSubscriptions"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:paddingBottom="80dp"
             android:visibility="gone">
 
             <androidx.recyclerview.widget.RecyclerView
@@ -177,7 +481,7 @@
                     android:layout_width="64dp"
                     android:layout_height="64dp"
                     android:src="@drawable/baseline_link"
-                    app:tint="#64748B" />
+                    app:tint="#8E92A8" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -193,7 +497,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="Нажмите +, чтобы добавить новую ссылку"
-                    android:textColor="#94A3B8"
+                    android:textColor="#8E92A8"
                     android:textSize="13sp" />
             </LinearLayout>
 
@@ -203,20 +507,22 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|end"
                 android:layout_margin="16dp"
-                android:backgroundTint="#10B981"
+                android:backgroundTint="#3A75FF"
                 android:text="Добавить"
                 android:textColor="@android:color/white"
                 app:icon="@drawable/baseline_add"
                 app:iconTint="@android:color/white" />
         </FrameLayout>
 
-        <!-- SCREEN 3: SETTINGS -->
+        <!-- SCREEN 3: SETTINGS (INCY GROUPED STYLE) -->
         <ScrollView
             android:id="@+id/screenSettings"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:padding="12dp"
+            android:paddingHorizontal="12dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="80dp"
             android:visibility="gone">
 
             <LinearLayout
@@ -224,72 +530,29 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <!-- ASSETS CARD -->
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/settingsAssets"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="10dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?android:attr/selectableItemBackground"
-                    app:cardBackgroundColor="#1E293B"
-                    app:cardCornerRadius="16dp"
-                    app:cardElevation="2dp"
-                    app:strokeColor="#334155"
-                    app:strokeWidth="1dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:padding="16dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/baseline_folder_open"
-                            app:tint="#10B981" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="16dp"
-                            android:layout_weight="1"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/assets"
-                                android:textColor="@android:color/white"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Базы GeoIP и GeoSite"
-                                android:textColor="#94A3B8"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                    android:layout_marginStart="4dp"
+                    android:layout_marginBottom="6dp"
+                    android:text="МАРШРУТИЗАЦИЯ"
+                    android:textColor="#8E92A8"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
 
                 <!-- APPS ROUTING CARD -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/settingsAppsRouting"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="10dp"
+                    android:layout_marginBottom="16dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground"
-                    app:cardBackgroundColor="#1E293B"
+                    app:cardBackgroundColor="#1A1B24"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp"
-                    app:strokeColor="#334155"
+                    app:strokeColor="#282A38"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -302,7 +565,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/baseline_alt_route"
-                            app:tint="#3B82F6" />
+                            app:tint="#3A75FF" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -316,7 +579,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/appsRouting"
                                 android:textColor="@android:color/white"
-                                android:textSize="16sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -324,9 +587,84 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:text="Выбор приложений для VPN"
-                                android:textColor="#94A3B8"
+                                android:textColor="#8E92A8"
                                 android:textSize="12sp" />
                         </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="#8E92A8" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginBottom="6dp"
+                    android:text="ДАННЫЕ И ЯДРО"
+                    android:textColor="#8E92A8"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <!-- ASSETS CARD -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/settingsAssets"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    app:cardBackgroundColor="#1A1B24"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="#282A38"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:padding="16dp">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/baseline_folder_open"
+                            app:tint="#22C55E" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="16dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/assets"
+                                android:textColor="@android:color/white"
+                                android:textSize="15sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Базы GeoIP и GeoSite"
+                                android:textColor="#8E92A8"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="#8E92A8" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -339,10 +677,10 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground"
-                    app:cardBackgroundColor="#1E293B"
+                    app:cardBackgroundColor="#1A1B24"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp"
-                    app:strokeColor="#334155"
+                    app:strokeColor="#282A38"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -369,7 +707,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/configs"
                                 android:textColor="@android:color/white"
-                                android:textSize="16sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -377,9 +715,15 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:text="Конфигурация ядра Xray"
-                                android:textColor="#94A3B8"
+                                android:textColor="#8E92A8"
                                 android:textSize="12sp" />
                         </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="#8E92A8" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -392,10 +736,10 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground"
-                    app:cardBackgroundColor="#1E293B"
+                    app:cardBackgroundColor="#1A1B24"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp"
-                    app:strokeColor="#334155"
+                    app:strokeColor="#282A38"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -408,7 +752,7 @@
                             android:layout_width="24dp"
                             android:layout_height="24dp"
                             android:src="@drawable/baseline_settings"
-                            app:tint="#8B5CF6" />
+                            app:tint="#A855F7" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -422,7 +766,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/settings"
                                 android:textColor="@android:color/white"
-                                android:textSize="16sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -430,9 +774,15 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:text="Параметры соединения, DNS, автозапуск"
-                                android:textColor="#94A3B8"
+                                android:textColor="#8E92A8"
                                 android:textSize="12sp" />
                         </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="#8E92A8" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -445,10 +795,10 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground"
-                    app:cardBackgroundColor="#1E293B"
+                    app:cardBackgroundColor="#1A1B24"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp"
-                    app:strokeColor="#334155"
+                    app:strokeColor="#282A38"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -475,7 +825,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/logs"
                                 android:textColor="@android:color/white"
-                                android:textSize="16sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -483,9 +833,15 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:text="Просмотр системных логов"
-                                android:textColor="#94A3B8"
+                                android:textColor="#8E92A8"
                                 android:textSize="12sp" />
                         </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="#8E92A8" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -498,10 +854,10 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground"
-                    app:cardBackgroundColor="#1E293B"
+                    app:cardBackgroundColor="#1A1B24"
                     app:cardCornerRadius="16dp"
                     app:cardElevation="2dp"
-                    app:strokeColor="#334155"
+                    app:strokeColor="#282A38"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -528,7 +884,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="@string/checkUpdate"
                                 android:textColor="@android:color/white"
-                                android:textSize="16sp"
+                                android:textSize="15sp"
                                 android:textStyle="bold" />
 
                             <TextView
@@ -536,21 +892,27 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
                                 android:text="Проверка наличия новых версий"
-                                android:textColor="#94A3B8"
+                                android:textColor="#8E92A8"
                                 android:textSize="12sp" />
                         </LinearLayout>
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@drawable/ic_chevron_right"
+                            app:tint="#8E92A8" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- ABOUT & VERSIONS INFO CARD -->
+                <!-- ABOUT CARD -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/settingsAboutCard"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
-                    app:cardBackgroundColor="#0F172A"
+                    app:cardBackgroundColor="#14151C"
                     app:cardCornerRadius="16dp"
-                    app:strokeColor="#1E293B"
+                    app:strokeColor="#282A38"
                     app:strokeWidth="1dp">
 
                     <LinearLayout
@@ -572,7 +934,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:textColor="#94A3B8"
+                            android:textColor="#8E92A8"
                             android:textSize="12sp" />
 
                         <TextView
@@ -580,7 +942,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
-                            android:textColor="#94A3B8"
+                            android:textColor="#8E92A8"
                             android:textSize="12sp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -588,14 +950,127 @@
         </ScrollView>
     </FrameLayout>
 
-    <!-- BOTTOM NAVIGATION -->
+    <!-- FLOATING LIQUID BOTTOM NAVIGATION DOCK (LIQUID NAVIGATION) -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/floatingNavCard"
+        android:layout_width="match_parent"
+        android:layout_height="62dp"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="16dp"
+        app:cardBackgroundColor="#161722"
+        app:cardCornerRadius="30dp"
+        app:cardElevation="12dp"
+        app:strokeColor="#282A3A"
+        app:strokeWidth="1dp">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- Liquid Pill Indicator View -->
+            <View
+                android:id="@+id/navLiquidIndicator"
+                android:layout_width="100dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center_vertical"
+                android:background="@drawable/bg_liquid_indicator" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:weightSum="3">
+
+                <LinearLayout
+                    android:id="@+id/navItemServers"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/navIconServers"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/ic_globe"
+                        app:tint="#3A75FF" />
+
+                    <TextView
+                        android:id="@+id/navTextServers"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Сервера"
+                        android:textColor="#3A75FF"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/navItemSubscriptions"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/navIconSubscriptions"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/baseline_link"
+                        app:tint="#8E92A8" />
+
+                    <TextView
+                        android:id="@+id/navTextSubscriptions"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Подписки"
+                        android:textColor="#8E92A8"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/navItemSettings"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:id="@+id/navIconSettings"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
+                        android:src="@drawable/baseline_settings"
+                        app:tint="#8E92A8" />
+
+                    <TextView
+                        android:id="@+id/navTextSettings"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Настройки"
+                        android:textColor="#8E92A8"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- HIDDEN LEGACY BOTTOM NAV (for compatibility if referenced) -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#0F172A"
-        app:itemIconTint="@color/color_bottom_nav"
-        app:itemRippleColor="#2010B981"
-        app:itemTextColor="@color/color_bottom_nav"
+        android:layout_height="0dp"
+        android:visibility="gone"
         app:menu="@menu/menu_bottom_nav" />
 </LinearLayout>

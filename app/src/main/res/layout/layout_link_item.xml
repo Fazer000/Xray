@@ -9,31 +9,35 @@
     android:clickable="true"
     android:focusable="true"
     android:foreground="?android:attr/selectableItemBackground"
-    app:cardBackgroundColor="#1E293B"
+    app:cardBackgroundColor="#1A1B24"
     app:cardCornerRadius="16dp"
     app:cardElevation="2dp"
-    app:strokeColor="#334155"
+    app:strokeColor="#282A38"
     app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:minHeight="72dp"
-        android:orientation="horizontal"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="12dp">
+        android:orientation="vertical"
+        android:padding="16dp">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/ic_dot_status_active" />
 
             <TextView
                 android:id="@+id/linkName"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:textColor="@android:color/white"
@@ -41,57 +45,112 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/linkType"
+                android:id="@+id/linkExpire"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:background="@drawable/bg_protocol_badge"
+                android:background="@drawable/bg_action_pill"
                 android:paddingHorizontal="8dp"
-                android:paddingVertical="2dp"
-                android:textColor="#10B981"
+                android:paddingVertical="3dp"
+                android:text="Бессрочно"
+                android:textColor="#3A75FF"
                 android:textSize="11sp"
                 android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
 
             <LinearLayout
                 android:id="@+id/linkEdit"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="8dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
                     android:contentDescription="@string/editIcon"
                     android:src="@drawable/baseline_edit"
-                    app:tint="#94A3B8" />
+                    app:tint="#8E92A8" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/linkDelete"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
                     android:contentDescription="@string/deleteIcon"
                     android:src="@drawable/baseline_delete"
                     app:tint="#EF4444" />
             </LinearLayout>
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/linkAddress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#8E92A8"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:id="@+id/linkTrafficLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Трафик"
+                    android:textColor="#8E92A8"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/linkTrafficText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 B / ∞"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/linkTrafficProgress"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="6dp"
+                android:progress="0"
+                android:progressTint="#3A75FF" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/linkAnnouncement"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_action_pill"
+            android:padding="10dp"
+            android:textColor="#8E92A8"
+            android:textSize="12sp"
+            android:visibility="gone" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

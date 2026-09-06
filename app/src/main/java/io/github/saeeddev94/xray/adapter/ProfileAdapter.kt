@@ -80,13 +80,13 @@ class ProfileAdapter(
         
         if (isSelected) {
             holder.activeIndicator.setBackgroundResource(R.drawable.ic_dot_status_active)
-            holder.profileCard.setCardBackgroundColor(Color.parseColor("#0F291E"))
-            holder.profileCard.strokeColor = Color.parseColor("#10B981")
+            holder.profileCard.setCardBackgroundColor(Color.parseColor("#1D233A"))
+            holder.profileCard.strokeColor = Color.parseColor("#3A75FF")
             holder.profileCard.strokeWidth = 2
         } else {
             holder.activeIndicator.setBackgroundResource(R.drawable.ic_dot_status_inactive)
-            holder.profileCard.setCardBackgroundColor(Color.parseColor("#1E293B"))
-            holder.profileCard.strokeColor = Color.parseColor("#334155")
+            holder.profileCard.setCardBackgroundColor(Color.parseColor("#1A1B24"))
+            holder.profileCard.strokeColor = Color.parseColor("#282A38")
             holder.profileCard.strokeWidth = 1
         }
 
@@ -104,10 +104,12 @@ class ProfileAdapter(
             holder.profileName.text = fullTitle
             val protoAndAddr = PingHelper.extractProtocolAndAddress(profile.config)
             if (protoAndAddr != null) {
-                holder.profileAddress.text = "${protoAndAddr.first} • ${protoAndAddr.second}"
+                holder.profileAddress.text = protoAndAddr.second
                 holder.profileAddress.isVisible = true
+                holder.badgeProtocol.text = protoAndAddr.first.uppercase()
             } else {
                 holder.profileAddress.isVisible = false
+                holder.badgeProtocol.text = "PROXY"
             }
         }
 
@@ -170,6 +172,7 @@ class ProfileAdapter(
         var profileCard: MaterialCardView = item.findViewById(R.id.profileCard)
         var profileName: TextView = item.findViewById(R.id.profileName)
         var profileAddress: TextView = item.findViewById(R.id.profileAddress)
+        var badgeProtocol: TextView = item.findViewById(R.id.badgeProtocol)
         var profilePingBtn: TextView = item.findViewById(R.id.profilePingBtn)
         var profileEdit: LinearLayout = item.findViewById(R.id.profileEdit)
         var profileDelete: LinearLayout = item.findViewById(R.id.profileDelete)
