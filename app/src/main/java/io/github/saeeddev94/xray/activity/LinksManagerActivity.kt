@@ -100,7 +100,7 @@ class LinksManagerActivity : AppCompatActivity() {
                 runCatching {
                     val hardwareId = settings.hardwareId && !settings.hardwareIdHeader.isNullOrBlank()
                     val hardwareIdHeader = if (hardwareId) settings.hardwareIdHeader else null
-                    val res = HttpHelper.getSubscriptionData(link.address, link.userAgent, hardwareIdHeader)
+                    val res = HttpHelper.getSubscriptionData(link.address, link.userAgent, hardwareIdHeader, applicationContext)
 
                     if (!res.userInfo.isNullOrBlank()) {
                         res.userInfo.split(";").forEach { part ->
@@ -494,7 +494,7 @@ class LinksManagerActivity : AppCompatActivity() {
     private fun subscriptionProfiles(link: Link, value: String): List<Profile> {
         val trimmed = value.trim()
         val happDecrypted = if (io.github.saeeddev94.xray.helper.HappHelper.isHappContent(trimmed)) {
-            io.github.saeeddev94.xray.helper.HappHelper.decryptLocal(trimmed)
+            io.github.saeeddev94.xray.helper.HappHelper.decryptLocal(trimmed, applicationContext)
         } else null
         val workingContent = happDecrypted ?: trimmed
         val decoded = runCatching { LinkHelper.tryDecodeBase64(workingContent).trim() }.getOrNull() ?: workingContent

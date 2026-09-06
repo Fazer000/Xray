@@ -1,5 +1,6 @@
 package io.github.saeeddev94.xray.helper
 
+import android.content.Context
 import android.os.Build
 import io.github.saeeddev94.xray.Settings
 import kotlinx.coroutines.CoroutineScope
@@ -68,9 +69,10 @@ class HttpHelper(
             link: String,
             userAgent: String? = null,
             hardwareId: String? = null,
+            context: Context? = null,
         ): SubscriptionResponse {
             if (HappHelper.isHappUrl(link)) {
-                return HappHelper.processHappUrl(link, userAgent, hardwareId)
+                return HappHelper.processHappUrl(link, context, userAgent, hardwareId)
             }
             return withContext(Dispatchers.IO) {
                 val connection = getConnection(
@@ -111,7 +113,7 @@ class HttpHelper(
                 }
 
                 if (HappHelper.isHappContent(responseBody)) {
-                    val decrypted = HappHelper.decryptLocal(responseBody)
+                    val decrypted = HappHelper.decryptLocal(responseBody, context)
                     if (!decrypted.isNullOrBlank()) {
                         responseBody = decrypted
                     }

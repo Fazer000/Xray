@@ -12,6 +12,7 @@ googleMaterial = "1.14.0"
 kotlinSerializationJson = "1.11.0"
 libsuCore = "5.2.2"
 codeScanner="2.3.2"
+bouncycastle = "1.78.1"
 
 [libraries]
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "androidxActivityKtx" }
@@ -27,6 +28,7 @@ google-material = { group = "com.google.android.material", name = "material", ve
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinSerializationJson" }
 topjohnwu-libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsuCore" }
 yuriy-budiyev-code-scanner = { group = "com.github.yuriy-budiyev", name = "code-scanner", version.ref = "codeScanner" }
+bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

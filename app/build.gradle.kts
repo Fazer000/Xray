@@ -128,4 +128,5 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.topjohnwu.libsu.core)
     implementation(libs.yuriy.budiyev.code.scanner)
+    implementation(libs.bouncycastle)
 }

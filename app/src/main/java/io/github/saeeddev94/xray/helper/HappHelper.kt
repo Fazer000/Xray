@@ -1,15 +1,18 @@
 package io.github.saeeddev94.xray.helper
 
+import android.content.Context
 import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.InputStreamReader
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
 import java.net.URLEncoder
 import java.security.KeyFactory
 import java.security.PrivateKey
+import java.security.Security
 import java.security.spec.PKCS8EncodedKeySpec
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -17,17 +20,43 @@ import javax.crypto.spec.SecretKeySpec
 
 object HappHelper {
 
-    // Known RSA PKCS#8 private keys for Happ crypt schemes (base64 DER format)
-    private val RSA_KEYS = listOf(
-        // Key 1 (crypt / crypt1)
-        "MIICXAIBAAKBgQC4i+8N...placeholder...", // standard 1024/2048 keys
-        // Key 2 (crypt2)
-        "MIICXAIBAAKBgQDQx...",
-        // Key 3 (crypt3)
-        "MIICXAIBAAKBgQDR...",
-        // Key 4 (crypt4)
-        "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBA"
-    )
+    private var nativeKeys: List<PrivateKey>? = null
+    private var crypt5Keys: Map<String, String>? = null
+
+    private fun ensureSecurityProvider() {
+        if (Security.getProvider("BC") == null) {
+            Security.addProvider(BouncyCastleProvider())
+        }
+    }
+
+    @Synchronized
+    fun initKeys(context: Context) {
+        if (nativeKeys != null && crypt5Keys != null) return
+        ensureSecurityProvider()
+        runCatching {
+            val nativeJsonStr = context.assets.open("native_keys.json").bufferedReader().use { it.readText() }
+            val nativeObj = JSONObject(nativeJsonStr)
+            val keysArr = nativeObj.getJSONArray("keys")
+            val parsedNative = mutableListOf<PrivateKey>()
+            for (i in 0 until keysArr.length()) {
+                parsedNative.add(parsePrivateKey(keysArr.getString(i)))
+            }
+            nativeKeys = parsedNative
+
+            val crypt5JsonStr = context.assets.open("crypt5_final_keys.json").bufferedReader().use { it.readText() }
+            val crypt5Obj = JSONObject(crypt5JsonStr)
+            val crypt5KeysObj = crypt5Obj.getJSONObject("keys")
+            val parsedCrypt5 = mutableMapOf<String, String>()
+            val keysIter = crypt5KeysObj.keys()
+            while (keysIter.hasNext()) {
+                val k = keysIter.next()
+                parsedCrypt5[k] = crypt5KeysObj.getString(k)
+            }
+            crypt5Keys = parsedCrypt5
+        }.onFailure {
+            it.printStackTrace()
+        }
+    }
 
     fun isHappUrl(url: String): Boolean {
         val trimmed = url.trim().lowercase()
@@ -35,7 +64,7 @@ object HappHelper {
     }
 
     fun isHappContent(content: String): Boolean {
-        val trimmed = content.trim()
+        val trimmed = content.trim().lowercase()
         return trimmed.startsWith("happ://") ||
                 trimmed.startsWith("crypt:") ||
                 trimmed.startsWith("crypt2:") ||
@@ -44,63 +73,161 @@ object HappHelper {
                 trimmed.startsWith("crypt5:")
     }
 
-    /**
-     * Attempts local decryption of a Happ link payload or encrypted string.
-     */
-    fun decryptLocal(input: String): String? {
-        val clean = input.trim()
-            .removePrefix("happ://")
-            .removePrefix("HAPP://")
-
-        val parts = clean.split("/", limit = 2)
-        val scheme = if (parts.size == 2 && parts[0].lowercase().startsWith("crypt")) {
-            parts[0].lowercase()
-        } else {
-            "crypt"
+    fun shuffleBlocks(text: String, blockSize: Int, order: IntArray): String {
+        val bytes = text.toByteArray(Charsets.UTF_8)
+        val full = (bytes.size / blockSize) * blockSize
+        val out = ByteArray(bytes.size)
+        var outIdx = 0
+        var i = 0
+        while (i < full) {
+            for (o in order) {
+                out[outIdx++] = bytes[i + o]
+            }
+            i += blockSize
         }
-        val payload = if (parts.size == 2 && parts[0].lowercase().startsWith("crypt")) {
-            parts[1]
-        } else {
-            clean
+        while (i < bytes.size) {
+            out[outIdx++] = bytes[i++]
         }
+        return String(out, Charsets.UTF_8)
+    }
 
-        if (payload.isBlank()) return null
+    fun m4831f(text: String): String = shuffleBlocks(text, 6, intArrayOf(1, 3, 5, 0, 2, 4))
+    fun inverseM4831f(text: String): String = shuffleBlocks(text, 6, intArrayOf(3, 0, 4, 1, 5, 2))
+    fun m4842j(text: String): String = shuffleBlocks(text, 2, intArrayOf(1, 0))
+    fun permute4(text: String): String = shuffleBlocks(text, 4, intArrayOf(2, 3, 0, 1))
 
-        val decodedBytes = tryDecodeBase64(payload) ?: return null
-
-        // Try RSA PKCS1 decryption with stored keys
-        for (keyPem in RSA_KEYS) {
-            val decrypted = runCatching { rsaDecrypt(decodedBytes, keyPem) }.getOrNull()
-            if (!decrypted.isNullOrBlank()) {
-                val resultStr = decrypted.trim()
-                if (resultStr.contains("://") || resultStr.startsWith("[") || resultStr.startsWith("{")) {
-                    return resultStr
+    fun b64Decode(text: String): ByteArray {
+        val clean = text.trim()
+        val variants = listOf(clean, clean.trimEnd('='))
+        val flagsList = listOf(Base64.DEFAULT, Base64.URL_SAFE, Base64.NO_WRAP)
+        for (v in variants) {
+            val padLen = (4 - v.length % 4) % 4
+            val padded = v + "=".repeat(padLen)
+            for (flags in flagsList) {
+                val decoded = runCatching { Base64.decode(padded, flags) }.getOrNull()
+                if (decoded != null && decoded.isNotEmpty()) {
+                    return decoded
                 }
             }
         }
-
-        // Try direct Base64 text decode if payload was just base64 encoded
-        val rawStr = runCatching { String(decodedBytes, Charsets.UTF_8) }.getOrNull()
-        if (!rawStr.isNullOrBlank() && (rawStr.contains("://") || rawStr.startsWith("[") || rawStr.startsWith("{"))) {
-            return rawStr
-        }
-
-        return null
+        throw IllegalArgumentException("Invalid base64 string")
     }
 
-    /**
-     * Resolves a Happ URL: decrypts locally or uses a fallback online decoder,
-     * then if the decrypted text is an HTTP(S) URL, fetches the actual payload.
-     */
+    fun rsaDecrypt(key: PrivateKey, ciphertextBytes: ByteArray): String {
+        ensureSecurityProvider()
+        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding", "BC")
+        cipher.init(Cipher.DECRYPT_MODE, key)
+        val decryptedBytes = cipher.doFinal(ciphertextBytes)
+        return String(decryptedBytes, Charsets.UTF_8)
+    }
+
+    fun parsePrivateKey(base64Der: String): PrivateKey {
+        ensureSecurityProvider()
+        val keyBytes = Base64.decode(base64Der, Base64.DEFAULT)
+        val keySpec = PKCS8EncodedKeySpec(keyBytes)
+        val keyFactory = KeyFactory.getInstance("RSA", "BC")
+        return keyFactory.generatePrivate(keySpec)
+    }
+
+    fun decryptChaCha20Poly1305(keyBytes: ByteArray, nonceBytes: ByteArray, cipherBytes: ByteArray): ByteArray {
+        ensureSecurityProvider()
+        val cipher = Cipher.getInstance("ChaCha20-Poly1305", "BC")
+        val keySpec = SecretKeySpec(keyBytes, "ChaCha20")
+        val ivSpec = IvParameterSpec(nonceBytes)
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, ivSpec)
+        return cipher.doFinal(cipherBytes)
+    }
+
+    private fun decryptCrypt5(payload: String, crypt5Map: Map<String, String>): String {
+        val original = inverseM4831f(payload)
+        val shuffled = permute4(original)
+        if (shuffled.length < 8) throw IllegalArgumentException("crypt5 payload too short")
+
+        val marker = shuffled.take(4) + shuffled.takeLast(4)
+        val body = shuffled.substring(4, shuffled.length - 4)
+        if (body.length < 13) throw IllegalArgumentException("crypt5 body too short")
+
+        val nonce = body.substring(0, 12).toByteArray(Charsets.UTF_8)
+        val rest = body.substring(12)
+
+        var digitCount = 0
+        while (digitCount < rest.length && rest[digitCount].isDigit()) {
+            digitCount++
+        }
+        if (digitCount == 0) throw IllegalArgumentException("crypt5 segment length missing")
+
+        val segmentLen = rest.substring(0, digitCount).toInt()
+        val packed = rest.substring(digitCount)
+
+        if (packed.length < 1 + segmentLen) throw IllegalArgumentException("crypt5 encrypted segment truncated")
+
+        val encryptedSegment = packed.substring(1, 1 + segmentLen)
+        val rsaCiphertext = packed.substring(1 + segmentLen)
+
+        val keyPem = crypt5Map[marker] ?: throw IllegalArgumentException("unknown crypt5 marker: $marker")
+        val privateKey = parsePrivateKey(keyPem)
+        val rsaPlain = rsaDecrypt(privateKey, b64Decode(rsaCiphertext))
+
+        val chachaKeyB64 = m4842j(rsaPlain)
+        val chachaKey = b64Decode(chachaKeyB64)
+        if (chachaKey.size != 32) throw IllegalArgumentException("ChaCha20 key has invalid length: ${chachaKey.size}")
+
+        val encryptedBytes = b64Decode(encryptedSegment)
+        val decryptedBytes = decryptChaCha20Poly1305(chachaKey, nonce, encryptedBytes)
+
+        return String(decryptedBytes, Charsets.UTF_8)
+    }
+
+    fun decrypt(value: String, context: Context? = null): String {
+        ensureSecurityProvider()
+        if (context != null) initKeys(context)
+
+        val cleanVal = value.trim()
+        val prefixes = listOf(
+            Pair("happ://crypt5/", 4),
+            Pair("happ://crypt4/", 3),
+            Pair("happ://crypt3/", 2),
+            Pair("happ://crypt2/", 1),
+            Pair("happ://crypt/", 0)
+        )
+
+        var mode = 4
+        var payload = cleanVal
+        for ((prefix, m) in prefixes) {
+            if (cleanVal.startsWith(prefix, ignoreCase = true)) {
+                mode = m
+                payload = cleanVal.substring(prefix.length)
+                break
+            }
+        }
+
+        val keys = nativeKeys ?: throw IllegalStateException("Happ native keys not loaded")
+        val c5Keys = crypt5Keys ?: throw IllegalStateException("Happ crypt5 keys not loaded")
+
+        return if (mode == 4) {
+            val step1 = m4831f(payload)
+            val step2 = decryptCrypt5(step1, c5Keys)
+            val step3 = m4842j(step2)
+            val finalBytes = b64Decode(step3)
+            String(finalBytes, Charsets.UTF_8)
+        } else {
+            val key = keys.getOrNull(mode) ?: throw IllegalArgumentException("Native key mode $mode not available")
+            rsaDecrypt(key, b64Decode(payload))
+        }
+    }
+
+    fun decryptLocal(input: String, context: Context? = null): String? {
+        return runCatching { decrypt(input, context) }.getOrNull()
+    }
+
     suspend fun processHappUrl(
         happUrl: String,
+        context: Context? = null,
         userAgent: String? = null,
         hardwareId: String? = null
     ): SubscriptionResponse = withContext(Dispatchers.IO) {
-        // 1. Try local decryption
-        var decrypted = decryptLocal(happUrl)
+        var decrypted = decryptLocal(happUrl, context)
 
-        // 2. If local decryption fails, try online decoder API mirror
         if (decrypted.isNullOrBlank()) {
             decrypted = fetchOnlineDecryption(happUrl, userAgent)
         }
@@ -111,13 +238,19 @@ object HappHelper {
 
         val cleanDecrypted = decrypted.trim()
 
-        // 3. If decrypted string is a web URL (http:// or https://), fetch its content
         val uri = runCatching { URI(cleanDecrypted) }.getOrNull()
         if (uri != null && (uri.scheme == "http" || uri.scheme == "https")) {
-            return@withContext HttpHelper.getSubscriptionData(cleanDecrypted, userAgent, hardwareId)
+            val res = HttpHelper.getSubscriptionData(cleanDecrypted, userAgent ?: "Happ/3.13.0", hardwareId, context)
+            val bodyTrimmed = res.body.trim()
+            if (isHappContent(bodyTrimmed)) {
+                val bodyDecrypted = decryptLocal(bodyTrimmed, context)
+                if (!bodyDecrypted.isNullOrBlank()) {
+                    return@withContext res.copy(body = bodyDecrypted)
+                }
+            }
+            return@withContext res
         }
 
-        // 4. Otherwise, the decrypted content is directly the subscription content (e.g. VLESS/VMess/JSON)
         SubscriptionResponse(body = cleanDecrypted)
     }
 
@@ -134,7 +267,7 @@ object HappHelper {
                 connection.requestMethod = "GET"
                 connection.connectTimeout = 4000
                 connection.readTimeout = 4000
-                connection.setRequestProperty("User-Agent", userAgent ?: "XrayFlow/1.0")
+                connection.setRequestProperty("User-Agent", userAgent ?: "Happ/3.13.0")
 
                 if (connection.responseCode == HttpURLConnection.HTTP_OK) {
                     val text = connection.inputStream.bufferedReader().use { it.readText() }.trim()
@@ -145,34 +278,5 @@ object HappHelper {
             }
         }
         return null
-    }
-
-    private fun rsaDecrypt(data: ByteArray, privateKeyBase64: String): String {
-        val keyBytes = Base64.decode(privateKeyBase64, Base64.DEFAULT)
-        val keySpec = PKCS8EncodedKeySpec(keyBytes)
-        val keyFactory = KeyFactory.getInstance("RSA")
-        val privateKey: PrivateKey = keyFactory.generatePrivate(keySpec)
-
-        val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-        cipher.init(Cipher.DECRYPT_MODE, privateKey)
-        val decryptedBytes = cipher.doFinal(data)
-        return String(decryptedBytes, Charsets.UTF_8)
-    }
-
-    private fun tryDecodeBase64(input: String): ByteArray? {
-        var formatted = input.trim()
-            .replace("-", "+")
-            .replace("_", "/")
-            .replace("\n", "")
-            .replace("\r", "")
-            .replace(" ", "")
-
-        while (formatted.length % 4 != 0) {
-            formatted += "="
-        }
-
-        return runCatching { Base64.decode(formatted, Base64.DEFAULT) }.getOrNull()
-            ?: runCatching { Base64.decode(formatted, Base64.URL_SAFE) }.getOrNull()
-            ?: runCatching { Base64.decode(formatted, Base64.NO_WRAP) }.getOrNull()
     }
 }
