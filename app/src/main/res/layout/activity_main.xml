@@ -594,8 +594,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#0F172A"
-        app:itemIconTint="#10B981"
+        app:itemIconTint="@color/color_bottom_nav"
         app:itemRippleColor="#2010B981"
-        app:itemTextColor="#10B981"
+        app:itemTextColor="@color/color_bottom_nav"
         app:menu="@menu/menu_bottom_nav" />
 </LinearLayout>

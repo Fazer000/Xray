@@ -5,27 +5,40 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#090D16"
     android:orientation="vertical"
     android:fitsSystemWindows="true"
     tools:context=".activity.ConfigsActivity">
+
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <androidx.appcompat.widget.Toolbar
+        android:layout_height="wrap_content"
+        android:background="#0F172A"
+        app:elevation="0dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@android:color/black" />
+            app:title="@string/configs"
+            app:titleTextColor="@android:color/white" />
+
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="#0F172A"
+            app:tabGravity="fill"
+            app:tabIndicatorColor="#10B981"
             app:tabMode="fixed"
-            app:tabGravity="fill" />
+            app:tabSelectedTextColor="#10B981"
+            app:tabTextColor="#94A3B8" />
     </com.google.android.material.appbar.AppBarLayout>
+
     <androidx.viewpager.widget.ViewPager
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 </LinearLayout>

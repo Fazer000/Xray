@@ -143,12 +143,9 @@ class ConfigHelper(
         val logMap = mutableMapOf<String, kotlinx.serialization.json.JsonElement>()
         currentLog.forEach { (k, v) -> logMap[k] = v }
 
-        if (!logMap.containsKey("error") || logMap["error"]?.jsonPrimitive?.contentOrNull.isNullOrBlank()) {
-            logMap["error"] = kotlinx.serialization.json.JsonPrimitive(settings.xrayCoreLogs().absolutePath)
-        }
-        if (!logMap.containsKey("loglevel")) {
-            logMap["loglevel"] = kotlinx.serialization.json.JsonPrimitive("warning")
-        }
+        logMap["error"] = kotlinx.serialization.json.JsonPrimitive(settings.xrayCoreLogs().absolutePath)
+        logMap["access"] = kotlinx.serialization.json.JsonPrimitive(settings.xrayCoreLogs().absolutePath)
+        logMap["loglevel"] = kotlinx.serialization.json.JsonPrimitive("debug")
 
         base = base.putValue("log", JsonObject(logMap))
     }

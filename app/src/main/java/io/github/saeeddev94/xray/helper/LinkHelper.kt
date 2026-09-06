@@ -211,8 +211,9 @@ class LinkHelper(
 
     private fun log(): JsonObject {
         return buildJsonObject {
-            put("loglevel", "warning")
+            put("loglevel", "debug")
             put("error", settings.xrayCoreLogs().absolutePath)
+            put("access", settings.xrayCoreLogs().absolutePath)
         }
     }
 

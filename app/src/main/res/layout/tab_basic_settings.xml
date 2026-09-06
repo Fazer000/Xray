@@ -1,218 +1,360 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#090D16">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="15dp">
-        <LinearLayout
+        android:padding="12dp">
+
+        <!-- SOCKS PROXY CARD -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:baselineAligned="false">
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="#1E293B"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#334155"
+            app:strokeWidth="1dp">
+
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
+
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Локальный SOCKS Прокси"
+                    android:textColor="#10B981"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/socksAddress"
-                    android:labelFor="@id/socksAddress" />
-                <EditText
-                    android:id="@+id/socksAddress"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:hint="@string/socksAddress"
+                        android:textColorHint="#94A3B8"
+                        app:boxStrokeColor="#10B981"
+                        app:hintTextColor="#10B981">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/socksAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints=""
+                            android:inputType="text"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:hint="@string/socksPort"
+                        android:textColorHint="#94A3B8"
+                        app:boxStrokeColor="#10B981"
+                        app:hintTextColor="#10B981">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/socksPort"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints=""
+                            android:inputType="number"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:autofillHints="" />
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:hint="@string/socksUsername"
+                        android:textColorHint="#94A3B8"
+                        app:boxStrokeColor="#10B981"
+                        app:hintTextColor="#10B981">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/socksUsername"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints=""
+                            android:inputType="text"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:hint="@string/socksPassword"
+                        android:textColorHint="#94A3B8"
+                        app:boxStrokeColor="#10B981"
+                        app:hintTextColor="#10B981">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/socksPassword"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints=""
+                            android:inputType="textPassword"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ROUTING & GEO DATASETS CARD -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardBackgroundColor="#1E293B"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#334155"
+            app:strokeWidth="1dp">
+
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
+
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="Маршрутизация и Источники"
+                    android:textColor="#3B82F6"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/socksPort"
-                    android:labelFor="@id/socksPort" />
-                <EditText
-                    android:id="@+id/socksPort"
+                    android:hint="@string/geoIpAddress"
+                    android:textColorHint="#94A3B8"
+                    app:boxStrokeColor="#3B82F6"
+                    app:hintTextColor="#3B82F6">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/geoIpAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:autofillHints=""
+                        android:inputType="text"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="number"
-                    android:autofillHints="" />
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/geoSiteAddress"
+                    android:textColorHint="#94A3B8"
+                    app:boxStrokeColor="#3B82F6"
+                    app:hintTextColor="#3B82F6">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/geoSiteAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:autofillHints=""
+                        android:inputType="text"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:hint="@string/pingAddress"
+                        android:textColorHint="#94A3B8"
+                        app:boxStrokeColor="#3B82F6"
+                        app:hintTextColor="#3B82F6">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/pingAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints=""
+                            android:inputType="text"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:hint="@string/pingTimeout"
+                        android:textColorHint="#94A3B8"
+                        app:boxStrokeColor="#3B82F6"
+                        app:hintTextColor="#3B82F6">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/pingTimeout"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:autofillHints=""
+                            android:inputType="number"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:hint="@string/refreshLinksInterval"
+                    android:textColorHint="#94A3B8"
+                    app:boxStrokeColor="#3B82F6"
+                    app:hintTextColor="#3B82F6">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/refreshLinksInterval"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:autofillHints=""
+                        android:inputType="number"
+                        android:textColor="@android:color/white"
+                        android:textSize="14sp" />
+                </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
-        </LinearLayout>
-        <LinearLayout
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- SWITCHES CARD -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:baselineAligned="false">
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="#1E293B"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:strokeColor="#334155"
+            app:strokeWidth="1dp">
+
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:padding="16dp">
+
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="Параметры Сети и Запуска"
+                    android:textColor="#F59E0B"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/bypassLan"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/socksUsername"
-                    android:labelFor="@id/socksUsername" />
-                <EditText
-                    android:id="@+id/socksUsername"
+                    android:text="@string/bypassLan"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/enableIpV6"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:autofillHints="" />
+                    android:text="@string/enableIpV6"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/socksUdp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/socksUdp"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/tun2socks"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tun2socks"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/bootAutoStart"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bootAutoStart"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/refreshLinksOnOpen"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/refreshLinksOnOpen"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/hardwareId"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hardwareId"
+                    android:textColor="@android:color/white"
+                    android:textSize="14sp" />
             </LinearLayout>
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/socksPassword"
-                    android:labelFor="@id/socksPassword" />
-                <EditText
-                    android:id="@+id/socksPassword"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="textPassword"
-                    android:autofillHints="" />
-            </LinearLayout>
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:baselineAligned="false">
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/geoIpAddress"
-                    android:labelFor="@id/geoIpAddress" />
-                <EditText
-                    android:id="@+id/geoIpAddress"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:autofillHints="" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/geoSiteAddress"
-                    android:labelFor="@id/geoSiteAddress" />
-                <EditText
-                    android:id="@+id/geoSiteAddress"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:autofillHints="" />
-            </LinearLayout>
-        </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:baselineAligned="false">
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/pingAddress"
-                    android:labelFor="@id/pingAddress" />
-                <EditText
-                    android:id="@+id/pingAddress"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="text"
-                    android:autofillHints="" />
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/pingTimeout"
-                    android:labelFor="@id/pingTimeout" />
-                <EditText
-                    android:id="@+id/pingTimeout"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:inputType="number"
-                    android:autofillHints="" />
-            </LinearLayout>
-        </LinearLayout>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/refreshLinksInterval"
-            android:labelFor="@id/refreshLinksInterval" />
-        <EditText
-            android:id="@+id/refreshLinksInterval"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:autofillHints="" />
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/bypassLan"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/bypassLan" />
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/enableIpV6"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/enableIpV6" />
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/socksUdp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/socksUdp" />
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/tun2socks"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/tun2socks" />
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/bootAutoStart"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/bootAutoStart" />
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/refreshLinksOnOpen"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/refreshLinksOnOpen" />
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/hardwareId"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/hardwareId" />
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

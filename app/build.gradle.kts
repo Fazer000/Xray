@@ -32,7 +32,7 @@ android {
             reset()
             val targetAbis = abiTarget.split(",").map { it.trim() }.filter { it.isNotBlank() }
             include(*targetAbis.toTypedArray())
-            isUniversalApk = true
+            isUniversalApk = false
         }
     }
 

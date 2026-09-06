@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primaryColor">#009966</color>
-    <color name="btnColor">#636363</color>
-    <color name="btnColorDisabled">#313131</color>
+    <color name="primaryColor">#10B981</color>
+    <color name="primaryDark">#0F172A</color>
+    <color name="surfaceDark">#1E293B</color>
+    <color name="backgroundDark">#090D16</color>
+    <color name="strokeDark">#334155</color>
+    <color name="textPrimary">#FFFFFF</color>
+    <color name="textSecondary">#94A3B8</color>
+    <color name="accentBlue">#3B82F6</color>
+    <color name="accentRed">#EF4444</color>
+    <color name="btnColor">#10B981</color>
+    <color name="btnColorDisabled">#334155</color>
 </resources>
