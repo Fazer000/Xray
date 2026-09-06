@@ -26,35 +26,11 @@ class DownloadHelper(
             var connection: HttpURLConnection? = null
 
             try {
-                var currentUrl = url
-                var redirects = 0
-                val maxRedirects = 5
+                connection = URL(url).openConnection() as HttpURLConnection
+                connection.connect()
 
-                while (redirects < maxRedirects) {
-                    connection = URL(currentUrl).openConnection() as HttpURLConnection
-                    connection.instanceFollowRedirects = true
-                    connection.connectTimeout = 15000
-                    connection.readTimeout = 30000
-                    connection.connect()
-
-                    val status = connection.responseCode
-                    if (status == HttpURLConnection.HTTP_MOVED_TEMP ||
-                        status == HttpURLConnection.HTTP_MOVED_PERM ||
-                        status == HttpURLConnection.HTTP_SEE_OTHER ||
-                        status == 307 || status == 308
-                    ) {
-                        val redirectUrl = connection.getHeaderField("Location")
-                        if (redirectUrl.isNullOrEmpty()) break
-                        currentUrl = redirectUrl
-                        connection.disconnect()
-                        redirects++
-                        continue
-                    }
-
-                    if (status != HttpURLConnection.HTTP_OK) {
-                        throw Exception("Expected HTTP ${HttpURLConnection.HTTP_OK} but received HTTP $status")
-                    }
-                    break
+                if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                    throw Exception("Expected HTTP ${HttpURLConnection.HTTP_OK} but received HTTP ${connection.responseCode}")
                 }
 
                 input = connection.inputStream

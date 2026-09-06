@@ -26,20 +26,6 @@ android {
         versionName = "1.0.4"
     }
 
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            val targets = abiTarget.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-            if (targets.isNotEmpty()) {
-                include(*targets.toTypedArray())
-            } else {
-                include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-            }
-            isUniversalApk = true
-        }
-    }
-
     buildFeatures {
         buildConfig = true
         viewBinding = true

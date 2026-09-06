@@ -66,7 +66,8 @@ class UpdateHelper(
                             apkAssets.add(ReleaseAsset(name, downloadUrl, size))
                         }
                     }
-                    apkAsset = findBestApk(apkAssets)
+                    apkAsset = apkAssets.firstOrNull { it.name.lowercase().contains("release") }
+                        ?: apkAssets.firstOrNull()
                 }
 
                 val isNewer = isNewerVersion(tagName, BuildConfig.VERSION_NAME)
