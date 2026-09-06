@@ -130,7 +130,7 @@ abstract class XrayDatabase : RoomDatabase() {
                             XrayDatabase::class.java,
                             "xray"
                         ).addMigrations(*migrations)
-                            .fallbackToDestructiveMigrationOnDowngrade()
+                            .fallbackToDestructiveMigrationOnDowngrade(true)
                             .build()
                     }
                 }

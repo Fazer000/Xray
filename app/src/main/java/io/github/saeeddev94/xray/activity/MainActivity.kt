@@ -256,13 +256,13 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.btnSupport)?.setOnClickListener {
             val link = currentLinksList.firstOrNull()
-            val url = if (!link?.supportUrl.isNullOrBlank()) link!!.supportUrl else "https://t.me/support"
+            val url = if (!link?.supportUrl.isNullOrBlank()) link.supportUrl else "https://t.me/support"
             runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
         }
 
         findViewById<TextView>(R.id.btnSite)?.setOnClickListener {
             val link = currentLinksList.firstOrNull()
-            val url = if (!link?.siteUrl.isNullOrBlank()) link!!.siteUrl else "https://google.com"
+            val url = if (!link?.siteUrl.isNullOrBlank()) link.siteUrl else "https://google.com"
             runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
         }
 
