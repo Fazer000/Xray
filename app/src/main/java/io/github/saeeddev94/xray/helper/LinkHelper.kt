@@ -389,7 +389,7 @@ class LinkHelper(
         }
 
         return buildJsonObject {
-            put("domainStrategy", if (settings.enableIpV6) "IPIfNonMatch" else "UseIPv4")
+            put("domainStrategy", "IPIfNonMatch")
             put(
                 "rules",
                 buildJsonArray {

@@ -36,13 +36,9 @@ object JsonHelper {
             val headersObj = transportObj["headers"] as? JsonObject ?: continue
 
             var hostFromHeader: String? = null
-            val newHeadersMap = mutableMapOf<String, JsonElement>()
-
             for ((hKey, hVal) in headersObj) {
                 if (hKey.equals("host", ignoreCase = true) && hostFromHeader == null) {
                     hostFromHeader = hVal.jsonPrimitive.contentOrNull
-                } else {
-                    newHeadersMap[hKey] = hVal
                 }
             }
 
@@ -53,10 +49,8 @@ object JsonHelper {
                 val existingHost = transportObj["host"]?.jsonPrimitive?.contentOrNull
                 if (existingHost.isNullOrBlank()) {
                     newTransportMap["host"] = JsonPrimitive(hostFromHeader)
+                    modifiedStreamSettings = modifiedStreamSettings.putValue(transportKey, JsonObject(newTransportMap))
                 }
-
-                newTransportMap["headers"] = JsonObject(newHeadersMap)
-                modifiedStreamSettings = modifiedStreamSettings.putValue(transportKey, JsonObject(newTransportMap))
             }
         }
         return modifiedStreamSettings

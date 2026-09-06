@@ -58,7 +58,7 @@ class ConfigHelper(
         val routingObj = JsonHelper.getObject(base, "routing")
         if (!routingObj.containsKey("domainStrategy")) {
             val routingMap = routingObj.toMutableMap()
-            routingMap["domainStrategy"] = kotlinx.serialization.json.JsonPrimitive(if (settings.enableIpV6) "IPIfNonMatch" else "UseIPv4")
+            routingMap["domainStrategy"] = kotlinx.serialization.json.JsonPrimitive("IPIfNonMatch")
             base = base.putValue("routing", JsonObject(routingMap))
         }
     }
